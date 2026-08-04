@@ -59,7 +59,7 @@ remote:
 # Routes, etc.) and to perform RBAC pre-checks via SelfSubjectAccessReview.
 rbac:
   required_roles:
-    - "namespaces: get, list, create, update, patch, delete"
+    - "namespaces: get, list, create, update, patch"
     - "apps/deployments, statefulsets, daemonsets, replicasets: get, list, create, update, patch, delete"
     - "services, configmaps, secrets, serviceaccounts, persistentvolumeclaims: get, list, watch, create, update, patch, delete"
     - "rbac.authorization.k8s.io/roles, rolebindings: get, list, create, update, patch, delete"

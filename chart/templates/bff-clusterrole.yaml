@@ -1,4 +1,8 @@
 {{- if and .Values.bff.enabled .Values.bff.rbac.create }}
+# NOTE: The BFF currently uses the user's forwarded Bearer token for all Helm
+# and K8s operations (automountServiceAccountToken is false). This ClusterRole
+# defines the permissions the BFF SA would need if SA-based operations are
+# enabled in the future, and documents the resource scope of quickstart charts.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -7,10 +11,10 @@ metadata:
     {{- include "quickstarts-manager.labels" . | nindent 4 }}
     app.kubernetes.io/component: bff
 rules:
-  # Manage namespaces for quickstart deployments
+  # Namespaces: create via helm install --create-namespace; no delete
   - apiGroups: [""]
     resources: ["namespaces"]
-    verbs: ["get", "list", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "create", "update", "patch"]
   # Manage workload resources created by quickstart Helm charts
   - apiGroups: ["apps"]
     resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
@@ -19,7 +23,7 @@ rules:
   - apiGroups: [""]
     resources: ["services", "configmaps", "serviceaccounts", "persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # Helm release secrets
+  # Helm stores release state in secrets
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "list", "create", "update", "patch", "delete"]
