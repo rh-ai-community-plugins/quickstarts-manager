@@ -5,6 +5,8 @@ import { CatalogQuickstart, QuickstartMetadata, RegistryQuickstart } from '../ty
 
 const router = Router();
 
+const QUICKSTART_NAME_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
+
 function buildCatalogQuickstart(
   registry: RegistryQuickstart,
   metadata: QuickstartMetadata | null,
@@ -72,6 +74,11 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:name', async (req: Request, res: Response) => {
   try {
     const { name } = req.params;
+
+    if (!QUICKSTART_NAME_PATTERN.test(name)) {
+      res.status(400).json({ error: 'Invalid quickstart name format' });
+      return;
+    }
 
     const registryQuickstarts = await getRegistryQuickstarts();
     const registryEntry = registryQuickstarts.find((qs) => qs.name === name);

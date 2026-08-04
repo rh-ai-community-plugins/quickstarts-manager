@@ -18,6 +18,10 @@ export function fetchUrl(url: string, redirectsRemaining = MAX_REDIRECTS): Promi
           }
           res.resume();
           const resolved = new URL(res.headers.location, url).href;
+          if (!resolved.startsWith('https://')) {
+            reject(new Error(`Refusing non-HTTPS redirect to ${resolved}`));
+            return;
+          }
           fetchUrl(resolved, redirectsRemaining - 1).then(resolve, reject);
           return;
         }

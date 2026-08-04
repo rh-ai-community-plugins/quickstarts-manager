@@ -73,6 +73,16 @@ describe('fetchUrl', () => {
     expect(result).toBe('redirected content');
   });
 
+  it('rejects non-HTTPS redirects', async () => {
+    const mockReq = createMockRequest();
+    mockedHttps.get.mockImplementation((_url: any, _opts: any, callback: any) => {
+      callback(createMockResponse(302, '', { location: 'http://internal.service/secret' }));
+      return mockReq;
+    });
+
+    await expect(fetchUrl('https://example.com/redirect')).rejects.toThrow('Refusing non-HTTPS redirect');
+  });
+
   it('rejects after too many redirects', async () => {
     const mockReq = createMockRequest();
     mockedHttps.get.mockImplementation((_url: any, _opts: any, callback: any) => {

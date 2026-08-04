@@ -137,6 +137,17 @@ describe('catalog routes', () => {
       expect(body.metadataAvailable).toBe(true);
     });
 
+    it('returns 400 for invalid quickstart name format', async () => {
+      const res = await request(port, '/api/catalog/INVALID_NAME!');
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error).toContain('Invalid quickstart name');
+    });
+
+    it('returns 400 for single-character name', async () => {
+      const res = await request(port, '/api/catalog/a');
+      expect(res.statusCode).toBe(400);
+    });
+
     it('returns 404 for unknown quickstart', async () => {
       mockedGetRegistry.mockResolvedValue(REGISTRY_ENTRIES);
 
