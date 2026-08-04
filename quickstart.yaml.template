@@ -1,0 +1,116 @@
+# quickstart.yaml — Metadata file for AI Quickstarts
+#
+# Place this file at the root of your quickstart repository to make it
+# available in the Quickstarts Manager plugin for the RHOAI Dashboard.
+#
+# All fields marked [REQUIRED] must be present. Others are optional but
+# recommended for a good user experience in the catalog.
+
+# ──────────────────────────────────────────────────────────────────────
+# Identity
+# ──────────────────────────────────────────────────────────────────────
+
+# [REQUIRED] Machine-readable name (lowercase, hyphens only, max 63 chars).
+# Must match the quickstarts.yaml registry entry.
+name: my-quickstart
+
+# [REQUIRED] Human-readable name shown in the catalog.
+displayName: My Quickstart
+
+# [REQUIRED] Short description (1-2 sentences) shown in catalog cards.
+description: A brief description of what this quickstart deploys and demonstrates.
+
+# [REQUIRED] Current version of the quickstart (semver).
+version: "1.0.0"
+
+# [OPTIONAL] URL to an icon image (SVG or PNG, ideally square).
+# Displayed in catalog cards. Falls back to a default icon if omitted.
+icon: https://raw.githubusercontent.com/rh-ai-quickstart/my-quickstart/main/docs/images/icon.svg
+
+# ──────────────────────────────────────────────────────────────────────
+# Maintainer
+# ──────────────────────────────────────────────────────────────────────
+
+maintainer:
+  # [REQUIRED] Display name of the maintainer or team.
+  name: Your Name
+  # [OPTIONAL] GitHub username or org.
+  github: your-github-handle
+
+# ──────────────────────────────────────────────────────────────────────
+# Source repository
+# ──────────────────────────────────────────────────────────────────────
+
+# [REQUIRED] URL to the quickstart's source repository.
+repository: https://github.com/rh-ai-quickstart/my-quickstart
+
+# ──────────────────────────────────────────────────────────────────────
+# Deployment
+# ──────────────────────────────────────────────────────────────────────
+
+deployment:
+  # [REQUIRED] Deployment scope:
+  #   "project"  — deploys into a single namespace (most common)
+  #   "cluster"  — requires cluster-scoped resources (CRDs, ClusterRoles, etc.)
+  scope: project
+
+  # [REQUIRED] Helm chart source. Two modes are supported:
+  chart:
+    # [REQUIRED] Either "oci" or "repo".
+    type: oci
+
+    # For type: oci — the OCI registry reference:
+    ref: oci://quay.io/rh-ai-quickstart/my-quickstart-chart
+
+    # For type: repo — the path to the chart within this repository:
+    # type: repo
+    # path: chart/
+    # branch: main
+
+  # [OPTIONAL] Default Helm values to apply on install.
+  # Users may override these in the install dialog.
+  defaultValues: {}
+
+# ──────────────────────────────────────────────────────────────────────
+# RBAC — Required permissions in the target namespace
+# ──────────────────────────────────────────────────────────────────────
+
+# [OPTIONAL] The plugin checks these permissions before attempting install.
+# If the user lacks any, the install button is disabled with an explanation.
+rbac:
+  requiredPermissions:
+    - apiGroup: ""
+      resource: pods
+      verbs: [get, list]
+    - apiGroup: apps
+      resource: deployments
+      verbs: [get, list, create, delete]
+    - apiGroup: ""
+      resource: services
+      verbs: [get, list, create, delete]
+    - apiGroup: ""
+      resource: configmaps
+      verbs: [get, list, create, delete]
+
+# ──────────────────────────────────────────────────────────────────────
+# Prerequisites — Shown to the user before install
+# ──────────────────────────────────────────────────────────────────────
+
+# [OPTIONAL] List of prerequisites. Each is a free-text string displayed
+# in the catalog detail panel. Use these for hardware, software, or
+# configuration requirements that cannot be checked automatically.
+prerequisites:
+  - GPU node with at least 16GB VRAM (e.g., NVIDIA A10G or better)
+  - S3-compatible object storage endpoint accessible from the cluster
+  - At least 20Gi of persistent storage available in the target namespace
+
+# ──────────────────────────────────────────────────────────────────────
+# Tags — For catalog filtering
+# ──────────────────────────────────────────────────────────────────────
+
+# [OPTIONAL] Tags for filtering in the catalog. Use lowercase.
+tags:
+  - chatbot
+  - rag
+  - llm
+  - guardrails

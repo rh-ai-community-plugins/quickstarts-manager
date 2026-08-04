@@ -1,0 +1,69 @@
+# --- Plugin identity (required) ---
+name: quickstarts-manager                    # [PLUGIN-SPECIFIC] unique plugin identifier (kebab-case)
+displayName: Quickstarts Manager             # [PLUGIN-SPECIFIC] human-readable name
+description: A reference implementation and scaffold plugin for the RHOAI Dashboard
+version: 0.1.0
+
+# --- Maintainer (required) ---
+maintainer:                          # [PLUGIN-SPECIFIC]
+  name: Guillaume Moutier                    # [PLUGIN-SPECIFIC] replace with maintainer's name
+  github: guimou        # [PLUGIN-SPECIFIC] replace with maintainer's GitHub handle
+
+# --- RHOAI compatibility (required) ---
+rhoai_compatibility:                 # [PLUGIN-SPECIFIC]
+  min_version: "3.3.0"
+  tested_versions: ["3.3.0", "3.4.2"]
+
+# --- Deployment (required) ---
+deployment_model: cluster-shared     # per-project | cluster-shared | both
+
+image:                               # [PLUGIN-SPECIFIC]
+  repository: quay.io/rh-ai-community-plugins/quickstarts-manager
+  tag: "0.1.0"
+
+bff_image:                           # [PLUGIN-SPECIFIC] (optional — only if using BFF pattern)
+  repository: quay.io/rh-ai-community-plugins/quickstarts-manager-bff
+  tag: "0.1.0"
+
+# --- Installation (required) ---
+install:
+  method: automatic                  # automatic | assisted | manual
+  namespace: cp-quickstarts-manager          # [PLUGIN-SPECIFIC] default namespace for deployment
+  helm:
+    chart_path: chart/
+    registry: oci://quay.io/rh-ai-community-plugins/quickstarts-manager-chart  # [PLUGIN-SPECIFIC]
+  prerequisites: []
+  instructions: https://github.com/rh-ai-community-plugins/quickstarts-manager/blob/main/docs/deployment  # [PLUGIN-SPECIFIC]
+
+# --- Dashboard integration (required) ---
+remote:
+  type: module-federation
+  spec:
+    name: quickstartsManager                 # [PLUGIN-SPECIFIC] Module Federation container name (camelCase)
+    scope: quickstartsManager                # [PLUGIN-SPECIFIC] must match name above
+    # [PLUGIN-SPECIFIC] Update this URL to point to your deployed OpenShift route.
+    # The URL is cluster-specific and depends on the route created by the Helm chart or Ingress.
+    # Example: https://quickstarts-manager-mynamespace.apps.mycluster.example.com/remoteEntry.js
+    remoteEntry: https://<your-openshift-route>/remoteEntry.js  # [PLUGIN-SPECIFIC]
+    paths:
+      - type: route
+        path: /quickstarts-manager           # [PLUGIN-SPECIFIC] must match route prefix in extensions.ts
+        extensions:
+          - quickstartsManager/extensions     # [PLUGIN-SPECIFIC] {scope}/extensions
+      - type: icon
+        path: quickstartsManager/Icon         # [PLUGIN-SPECIFIC] {scope}/Icon
+
+# --- RBAC (required) ---
+# NOTE: The plugin itself requires no cluster roles at install time. However,
+# users of the Cluster Resources page need RBAC permissions for create/list/delete
+# on apps/deployments, core/services, core/configmaps, and core/secrets via the
+# dashboard's K8s API pass-through.
+rbac:
+  required_roles: []
+  cluster_roles: false
+
+# --- Support (optional) ---
+support:
+  repo: https://github.com/rh-ai-community-plugins/quickstarts-manager   # [PLUGIN-SPECIFIC]
+  docs: https://github.com/rh-ai-community-plugins/quickstarts-manager/tree/main/docs
+  issues: https://github.com/rh-ai-community-plugins/quickstarts-manager/issues

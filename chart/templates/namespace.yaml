@@ -1,0 +1,8 @@
+{{- if ne (include "quickstarts-manager.namespace" .) .Release.Namespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "quickstarts-manager.namespace" . }}
+  labels:
+    {{- include "quickstarts-manager.labels" . | nindent 4 }}
+{{- end }}
