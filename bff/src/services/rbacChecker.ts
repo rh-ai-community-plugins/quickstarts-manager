@@ -25,17 +25,19 @@ async function checkSinglePermission(
   resource: string,
   verb: string,
 ): Promise<boolean> {
+  const spec: SelfSubjectAccessReviewSpec = {
+    resourceAttributes: {
+      namespace,
+      verb,
+      group: apiGroup,
+      resource,
+    },
+  };
+
   const body = {
     apiVersion: 'authorization.k8s.io/v1',
     kind: 'SelfSubjectAccessReview',
-    spec: {
-      resourceAttributes: {
-        namespace,
-        verb,
-        group: apiGroup,
-        resource,
-      },
-    } satisfies SelfSubjectAccessReviewSpec,
+    spec,
   };
 
   const response = await k8sApiRequest<SelfSubjectAccessReviewResponse>(

@@ -1,47 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { installQuickstart, upgradeQuickstart, removeQuickstart } from '../services/lifecycleService';
 import { validateHelmValues } from '../services/helmService';
+import { extractToken, validateQuickstartName, validateNamespace } from '../utils/validation';
 import { LifecycleResponse, LifecycleProgressCallback } from '../types/lifecycle';
 
 const router = Router();
-
-const QUICKSTART_NAME_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
-const K8S_NAMESPACE_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
-
-const PROTECTED_NAMESPACE_PATTERNS = [
-  /^kube-/,
-  /^openshift-/,
-  /^redhat-ods-/,
-  /^default$/,
-  /^opendatahub$/,
-];
-
-function isProtectedNamespace(namespace: string): boolean {
-  return PROTECTED_NAMESPACE_PATTERNS.some((pattern) => pattern.test(namespace));
-}
-
-function extractToken(req: Request): string | null {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) return null;
-  return auth.slice(7);
-}
-
-function validateQuickstartName(name: string): string | null {
-  if (!QUICKSTART_NAME_PATTERN.test(name)) {
-    return 'Invalid quickstart name: must be lowercase alphanumeric with hyphens, 2-64 characters';
-  }
-  return null;
-}
-
-function validateNamespace(namespace: unknown): string | null {
-  if (typeof namespace !== 'string' || !K8S_NAMESPACE_PATTERN.test(namespace)) {
-    return 'Invalid namespace: must be lowercase alphanumeric with hyphens, 2-64 characters';
-  }
-  if (isProtectedNamespace(namespace)) {
-    return `Cannot operate on protected namespace "${namespace}"`;
-  }
-  return null;
-}
 
 function sendSSE(
   req: Request,
