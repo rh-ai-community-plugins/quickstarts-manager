@@ -1,6 +1,6 @@
 import https from 'https';
 import { EventEmitter } from 'events';
-import { k8sApiRequest, discoverRoutes } from '../src/services/k8sApiClient';
+import { k8sApiRequest, discoverRoutes, K8sApiError } from '../src/services/k8sApiClient';
 
 jest.mock('https');
 jest.mock('../src/utils/k8sClient', () => ({
@@ -127,7 +127,10 @@ describe('k8sApiRequest', () => {
       return mockReq as unknown as ReturnType<typeof https.request>;
     });
 
-    await expect(k8sApiRequest('bad-token', '/api/v1/pods')).rejects.toThrow('K8s API returned 403');
+    const err = await k8sApiRequest('bad-token', '/api/v1/pods').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(K8sApiError);
+    expect((err as K8sApiError).statusCode).toBe(403);
+    expect((err as K8sApiError).message).toContain('K8s API returned 403');
   });
 
   it('rejects on request error', async () => {

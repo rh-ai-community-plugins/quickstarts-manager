@@ -11,7 +11,6 @@ const PROTECTED_NAMESPACE_PATTERNS = [
   /^openshift-/,
   /^redhat-ods-/,
   /^default$/,
-  /^kube-system$/,
   /^opendatahub$/,
 ];
 

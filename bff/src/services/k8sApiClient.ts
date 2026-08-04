@@ -7,6 +7,16 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
 const CA_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt';
 
+export class K8sApiError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'K8sApiError';
+  }
+}
+
 let cachedCa: Buffer | undefined;
 try {
   cachedCa = fs.readFileSync(CA_PATH);
@@ -77,6 +87,14 @@ export function k8sApiRequest<T = unknown>(
     }
 
     const transport = isHttps ? https : http;
+    let settled = false;
+    const settle = (fn: () => void) => {
+      if (!settled) {
+        settled = true;
+        fn();
+      }
+    };
+
     const req = transport.request(options, (res) => {
       let data = '';
       let receivedBytes = 0;
@@ -85,7 +103,7 @@ export function k8sApiRequest<T = unknown>(
         receivedBytes += typeof chunk === 'string' ? Buffer.byteLength(chunk) : chunk.length;
         if (receivedBytes > MAX_BODY_BYTES) {
           req.destroy();
-          reject(new Error(`K8s API response exceeded ${MAX_BODY_BYTES} bytes`));
+          settle(() => reject(new Error(`K8s API response exceeded ${MAX_BODY_BYTES} bytes`)));
           return;
         }
         data += chunk;
@@ -93,23 +111,26 @@ export function k8sApiRequest<T = unknown>(
 
       res.on('end', () => {
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          let parsed: T;
           try {
-            resolve(JSON.parse(data) as T);
+            parsed = JSON.parse(data) as T;
           } catch {
-            reject(new Error('Failed to parse K8s API response JSON'));
+            settle(() => reject(new Error('Failed to parse K8s API response JSON')));
+            return;
           }
+          settle(() => resolve(parsed));
         } else {
-          reject(new Error(`K8s API returned ${res.statusCode}: ${data}`));
+          settle(() => reject(new K8sApiError(res.statusCode ?? 0, `K8s API returned ${res.statusCode}: ${data}`)));
         }
       });
     });
 
     req.setTimeout(REQUEST_TIMEOUT_MS, () => {
       req.destroy();
-      reject(new Error(`K8s API request timed out after ${REQUEST_TIMEOUT_MS}ms`));
+      settle(() => reject(new Error(`K8s API request timed out after ${REQUEST_TIMEOUT_MS}ms`)));
     });
 
-    req.on('error', reject);
+    req.on('error', (err) => settle(() => reject(err)));
 
     if (serializedBody) {
       req.write(serializedBody);
@@ -130,7 +151,7 @@ export async function discoverRoutes(namespace: string, token: string): Promise<
       `/apis/route.openshift.io/v1/namespaces/${encodeURIComponent(namespace)}/routes`,
     );
   } catch (err) {
-    if (err instanceof Error && err.message.includes('404')) {
+    if (err instanceof K8sApiError && err.statusCode === 404) {
       return [];
     }
     throw err;
