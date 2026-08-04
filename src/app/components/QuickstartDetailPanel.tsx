@@ -114,14 +114,18 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
               <DescriptionListGroup>
                 <DescriptionListTerm>Repository</DescriptionListTerm>
                 <DescriptionListDescription>
-                  <a
-                    href={quickstart.repository}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {quickstart.repository}{' '}
-                    <ExternalLinkAltIcon />
-                  </a>
+                  {/^https?:\/\//.test(quickstart.repository) ? (
+                    <a
+                      href={quickstart.repository}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {quickstart.repository}{' '}
+                      <ExternalLinkAltIcon />
+                    </a>
+                  ) : (
+                    quickstart.repository
+                  )}
                 </DescriptionListDescription>
               </DescriptionListGroup>
               {quickstart.deployment?.scope && (
