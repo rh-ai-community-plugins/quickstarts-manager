@@ -1,0 +1,21 @@
+{{- if and .Values.bff.enabled .Values.bff.rbac.create }}
+{{- if and (not .Values.bff.serviceAccount.create) (not .Values.bff.serviceAccount.name) }}
+{{- fail "bff.rbac.create=true requires either bff.serviceAccount.create=true or bff.serviceAccount.name to be set" }}
+{{- end }}
+{{- $saName := include "quickstarts-manager.bffServiceAccountName" . }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "quickstarts-manager.fullname" . }}-bff
+  labels:
+    {{- include "quickstarts-manager.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bff
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "quickstarts-manager.fullname" . }}-bff
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ include "quickstarts-manager.namespace" . }}
+{{- end }}

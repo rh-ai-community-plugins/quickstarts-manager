@@ -1,7 +1,7 @@
 # --- Plugin identity (required) ---
 name: quickstarts-manager                    # [PLUGIN-SPECIFIC] unique plugin identifier (kebab-case)
 displayName: Quickstarts Manager             # [PLUGIN-SPECIFIC] human-readable name
-description: A reference implementation and scaffold plugin for the RHOAI Dashboard
+description: Browse, deploy, and manage AI Quickstarts from the rh-ai-quickstart GitHub organization
 version: 0.1.0
 
 # --- Maintainer (required) ---
@@ -54,13 +54,19 @@ remote:
         path: quickstartsManager/Icon         # [PLUGIN-SPECIFIC] {scope}/Icon
 
 # --- RBAC (required) ---
-# NOTE: The plugin itself requires no cluster roles at install time. However,
-# users of the Cluster Resources page need RBAC permissions for create/list/delete
-# on apps/deployments, core/services, core/configmaps, and core/secrets via the
-# dashboard's K8s API pass-through.
+# The BFF service requires a ClusterRole to manage Helm-deployed quickstart
+# resources across namespaces (Deployments, Services, ConfigMaps, Secrets,
+# Routes, etc.) and to perform RBAC pre-checks via SelfSubjectAccessReview.
 rbac:
-  required_roles: []
-  cluster_roles: false
+  required_roles:
+    - "namespaces: get, list, create, update, patch"
+    - "apps/deployments, statefulsets, daemonsets, replicasets: get, list, create, update, patch, delete"
+    - "services, configmaps, secrets, serviceaccounts, persistentvolumeclaims: get, list, create, update, patch, delete"
+    - "rbac.authorization.k8s.io/roles, rolebindings: get, list, create, update, patch, delete"
+    - "networking.k8s.io/ingresses, networkpolicies: get, list, create, update, patch, delete"
+    - "route.openshift.io/routes: get, list, create, update, patch, delete"
+    - "authorization.k8s.io/selfsubjectaccessreviews: create"
+  cluster_roles: true
 
 # --- Support (optional) ---
 support:
