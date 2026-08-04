@@ -248,7 +248,7 @@ The ClusterRole grants permissions for:
 | API Group | Resources | Verbs |
 |---|---|---|
 | `""` (core) | namespaces | get, list, create, update, patch |
-| `""` (core) | services, configmaps, secrets, serviceaccounts, persistentvolumeclaims | get, list, watch, create, update, patch, delete |
+| `""` (core) | services, configmaps, secrets, serviceaccounts, persistentvolumeclaims | get, list, create, update, patch, delete |
 | `apps` | deployments, statefulsets, daemonsets, replicasets | get, list, create, update, patch, delete |
 | `rbac.authorization.k8s.io` | roles, rolebindings | get, list, create, update, patch, delete |
 | `networking.k8s.io` | ingresses, networkpolicies | get, list, create, update, patch, delete |

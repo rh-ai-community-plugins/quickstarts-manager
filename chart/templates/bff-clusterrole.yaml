@@ -22,7 +22,7 @@ rules:
   # Manage core resources created by quickstart Helm charts
   - apiGroups: [""]
     resources: ["services", "configmaps", "serviceaccounts", "persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
   # Helm stores release state in secrets
   - apiGroups: [""]
     resources: ["secrets"]

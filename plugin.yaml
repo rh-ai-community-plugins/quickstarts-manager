@@ -61,7 +61,7 @@ rbac:
   required_roles:
     - "namespaces: get, list, create, update, patch"
     - "apps/deployments, statefulsets, daemonsets, replicasets: get, list, create, update, patch, delete"
-    - "services, configmaps, secrets, serviceaccounts, persistentvolumeclaims: get, list, watch, create, update, patch, delete"
+    - "services, configmaps, secrets, serviceaccounts, persistentvolumeclaims: get, list, create, update, patch, delete"
     - "rbac.authorization.k8s.io/roles, rolebindings: get, list, create, update, patch, delete"
     - "networking.k8s.io/ingresses, networkpolicies: get, list, create, update, patch, delete"
     - "route.openshift.io/routes: get, list, create, update, patch, delete"
