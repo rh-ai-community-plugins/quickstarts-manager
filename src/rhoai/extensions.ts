@@ -32,36 +32,14 @@ export const quickstartsManagerSectionExtension = {
   },
 };
 
-export const userInfoNavExtension = {
+export const quickstartsNavExtension = {
   type: 'app.navigation/href' as const,
   properties: {
-    id: 'quickstarts-manager-user-info', // [PLUGIN-SPECIFIC] unique nav item ID
-    title: 'User Info',
-    href: '/quickstarts-manager/user-info', // [PLUGIN-SPECIFIC] must match route prefix
+    id: 'quickstarts-manager-quickstarts', // [PLUGIN-SPECIFIC] unique nav item ID
+    title: 'Quickstarts',
+    href: '/quickstarts-manager/quickstarts', // [PLUGIN-SPECIFIC] must match route prefix
     section: 'quickstarts-manager', // [PLUGIN-SPECIFIC] references this plugin's section ID
-    path: '/quickstarts-manager/user-info/*', // [PLUGIN-SPECIFIC] route-matching pattern
-  },
-};
-
-export const clusterResourcesNavExtension = {
-  type: 'app.navigation/href' as const,
-  properties: {
-    id: 'quickstarts-manager-cluster-resources', // [PLUGIN-SPECIFIC] unique nav item ID
-    title: 'Cluster Resources',
-    href: '/quickstarts-manager/cluster-resources', // [PLUGIN-SPECIFIC] must match route prefix
-    section: 'quickstarts-manager', // [PLUGIN-SPECIFIC] references this plugin's section ID
-    path: '/quickstarts-manager/cluster-resources/*', // [PLUGIN-SPECIFIC] route-matching pattern
-  },
-};
-
-export const namespaceSummaryNavExtension = {
-  type: 'app.navigation/href' as const,
-  properties: {
-    id: 'quickstarts-manager-namespace-summary', // [PLUGIN-SPECIFIC] unique nav item ID
-    title: 'Namespace Summary',
-    href: '/quickstarts-manager/namespace-summary', // [PLUGIN-SPECIFIC] must match route prefix
-    section: 'quickstarts-manager', // [PLUGIN-SPECIFIC] references this plugin's section ID
-    path: '/quickstarts-manager/namespace-summary/*', // [PLUGIN-SPECIFIC] route-matching pattern
+    path: '/quickstarts-manager/quickstarts/*', // [PLUGIN-SPECIFIC] route-matching pattern
   },
 };
 
@@ -77,9 +55,7 @@ export const extensions = [
   communityPluginsSectionExtension,
   quickstartsManagerAreaExtension,
   quickstartsManagerSectionExtension,
-  userInfoNavExtension,
-  clusterResourcesNavExtension,
-  namespaceSummaryNavExtension,
+  quickstartsNavExtension,
   quickstartsManagerRouteExtension,
 ];
 
