@@ -21,7 +21,13 @@ export interface HelmRelease {
 const VALUE_KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
 const VALUE_STRING_PATTERN = /^[a-zA-Z0-9._:/@=+\- ]*$/;
 
+const MAX_HELM_VALUES = 50;
+
 export function validateHelmValues(values: Record<string, unknown>): void {
+  const keys = Object.keys(values);
+  if (keys.length > MAX_HELM_VALUES) {
+    throw new Error(`Too many Helm values: ${keys.length} exceeds maximum of ${MAX_HELM_VALUES}`);
+  }
   for (const [key, value] of Object.entries(values)) {
     if (!VALUE_KEY_PATTERN.test(key)) {
       throw new Error(`Invalid Helm value key: keys must match ${VALUE_KEY_PATTERN}`);

@@ -1,11 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { getRegistryQuickstarts } from '../services/registryClient';
 import { getAllQuickstartMetadata, getQuickstartMetadata, clearMetadataCache } from '../services/quickstartMetadataClient';
+import { QUICKSTART_NAME_PATTERN } from '../utils/validation';
 import { CatalogQuickstart, QuickstartMetadata, RegistryQuickstart } from '../types/catalog';
 
 const router = Router();
-
-const QUICKSTART_NAME_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
 const REFRESH_COOLDOWN_MS = 30_000;
 let lastRefreshAt = 0;
 
