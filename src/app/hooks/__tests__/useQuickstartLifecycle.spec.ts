@@ -26,6 +26,7 @@ function createMockSSEResponse(events: Array<{ event: string; data: unknown }>) 
   };
 
   return {
+    ok: true,
     headers: new Headers({ 'content-type': 'text/event-stream' }),
     body: {
       pipeThrough: () => ({ getReader: () => reader }),
@@ -94,6 +95,7 @@ describe('useQuickstartLifecycle', () => {
 
   it('should handle install with JSON response fallback', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve(completeResult),
     });
@@ -110,6 +112,7 @@ describe('useQuickstartLifecycle', () => {
 
   it('should handle install with values', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve(completeResult),
     });
@@ -130,6 +133,7 @@ describe('useQuickstartLifecycle', () => {
 
   it('should handle upgrade', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () =>
         Promise.resolve({ ...completeResult, message: 'Upgraded' }),
@@ -150,6 +154,7 @@ describe('useQuickstartLifecycle', () => {
 
   it('should handle remove', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () =>
         Promise.resolve({ ...completeResult, message: 'Removed' }),
@@ -176,6 +181,7 @@ describe('useQuickstartLifecycle', () => {
     };
 
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve(failedResult),
     });
@@ -187,6 +193,42 @@ describe('useQuickstartLifecycle', () => {
     });
 
     expect(result.current.error).toBe('RBAC check failed');
+    expect(result.current.result?.success).toBe(false);
+  });
+
+  it('should set error on HTTP error response with JSON error body', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      text: () => Promise.resolve(JSON.stringify({ error: 'Invalid namespace' })),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    await act(async () => {
+      await result.current.install('my-app', 'kube-system');
+    });
+
+    expect(result.current.error).toBe('Invalid namespace');
+    expect(result.current.result?.success).toBe(false);
+  });
+
+  it('should set error on HTTP error response with plain text body', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      headers: new Headers({ 'content-type': 'text/plain' }),
+      text: () => Promise.resolve('Internal Server Error'),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    await act(async () => {
+      await result.current.install('my-app', 'test-ns');
+    });
+
+    expect(result.current.error).toBe('Internal Server Error');
     expect(result.current.result?.success).toBe(false);
   });
 
@@ -205,6 +247,7 @@ describe('useQuickstartLifecycle', () => {
 
   it('should reset state', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve(completeResult),
     });
@@ -230,6 +273,7 @@ describe('useQuickstartLifecycle', () => {
 
   it('should encode special characters in quickstart name', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve(completeResult),
     });

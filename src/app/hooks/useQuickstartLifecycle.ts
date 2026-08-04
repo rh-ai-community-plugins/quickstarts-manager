@@ -49,6 +49,18 @@ async function lifecycleStreamRequest(
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 
+  if (!res.ok) {
+    const text = await res.text();
+    let message: string;
+    try {
+      const parsed = JSON.parse(text);
+      message = parsed.error ?? parsed.message ?? `Request failed: ${res.status}`;
+    } catch {
+      message = text || `Request failed: ${res.status}`;
+    }
+    throw new Error(message);
+  }
+
   const contentType = res.headers.get('content-type') ?? '';
 
   if (contentType.includes('application/json')) {
