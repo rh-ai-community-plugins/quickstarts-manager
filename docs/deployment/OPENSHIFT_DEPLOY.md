@@ -7,6 +7,7 @@ This guide walks through deploying the plugin on an OpenShift cluster that alrea
 - **Helm** — to install the plugin chart
 - **`oc` CLI** — logged in to the target OpenShift cluster
 - **Access to `redhat-ods-applications`** — typically requires cluster-admin, since you need to modify the dashboard's Deployment
+- **Cluster-admin permissions** — the Helm chart creates a ClusterRole and ClusterRoleBinding for the BFF service (see [RBAC](#rbac) below)
 
 > **ODH vs RHOAI:** This guide uses the RHOAI dashboard namespace `redhat-ods-applications` and deployment name `rhods-dashboard`. If you are running the Open Data Hub (ODH) upstream distribution instead, substitute `opendatahub` for the namespace and `odh-dashboard` for the deployment name throughout.
 
@@ -35,6 +36,8 @@ This creates:
 
 - A **Deployment** and **Service** (`quickstarts-manager`) serving the plugin's static assets (including `remoteEntry.js`) via Nginx on port 8080
 - A **BFF Deployment** and **Service** (`quickstarts-manager-bff`) running the plugin's backend service on port 3000 (enabled by default)
+- A **ServiceAccount** (`quickstarts-manager-bff`) for the BFF pod
+- A **ClusterRole** and **ClusterRoleBinding** granting the BFF permissions to manage quickstart resources across namespaces (see [RBAC](#rbac))
 
 ### Overriding Defaults
 
@@ -56,6 +59,21 @@ helm install quickstarts-manager oci://quay.io/rh-ai-community-plugins/quickstar
   --namespace cp-quickstarts-manager \
   --create-namespace \
   --set bff.enabled=false
+```
+
+### Quickstart Registry Configuration
+
+The BFF fetches the list of available quickstarts from a curated registry file hosted on GitHub. By default it uses this repository's own `quickstarts.yaml`, but you can point it to a different registry:
+
+```bash
+helm install quickstarts-manager oci://quay.io/rh-ai-community-plugins/quickstarts-manager-chart \
+  --version 0.1.0 \
+  --namespace cp-quickstarts-manager \
+  --create-namespace \
+  --set bff.registryRepo=https://github.com/my-org/my-quickstarts \
+  --set bff.registryBranch=main \
+  --set bff.registryFile=quickstarts.yaml \
+  --set bff.cacheTtl=600
 ```
 
 See [Helm Chart Reference](#helm-chart-reference) for the full list of configurable values.
@@ -217,6 +235,36 @@ oc delete namespace cp-quickstarts-manager   # optional: remove the namespace en
 
 ---
 
+## RBAC
+
+The BFF service manages quickstart lifecycle operations (install, upgrade, remove) by running Helm commands and querying the Kubernetes API. The Helm chart creates the following RBAC resources:
+
+- **ServiceAccount** (`quickstarts-manager-bff`) — dedicated identity for the BFF pod
+- **ClusterRole** (`quickstarts-manager-bff`) — permissions to manage resources across namespaces
+- **ClusterRoleBinding** — binds the ClusterRole to the BFF ServiceAccount
+
+The ClusterRole grants permissions for:
+
+| API Group | Resources | Verbs |
+|---|---|---|
+| `""` (core) | namespaces | get, list, create, update, patch, delete |
+| `""` (core) | services, configmaps, secrets, serviceaccounts, persistentvolumeclaims | get, list, watch, create, update, patch, delete |
+| `apps` | deployments, statefulsets, daemonsets, replicasets | get, list, create, update, patch, delete |
+| `rbac.authorization.k8s.io` | roles, rolebindings | get, list, create, update, patch, delete |
+| `networking.k8s.io` | ingresses, networkpolicies | get, list, create, update, patch, delete |
+| `route.openshift.io` | routes | get, list, create, update, patch, delete |
+| `authorization.k8s.io` | selfsubjectaccessreviews | create |
+
+To disable RBAC resource creation (e.g., if you manage RBAC externally):
+
+```bash
+helm install quickstarts-manager chart/ \
+  --set bff.rbac.create=false \
+  --set bff.serviceAccount.name=my-existing-sa
+```
+
+---
+
 ## Helm Chart Reference
 
 Key values in `chart/values.yaml`:
@@ -242,5 +290,12 @@ Key values in `chart/values.yaml`:
 | `bff.resources.requests.memory` | `128Mi` | BFF memory request |
 | `bff.resources.limits.cpu` | `200m` | BFF CPU limit |
 | `bff.resources.limits.memory` | `256Mi` | BFF memory limit |
+| `bff.serviceAccount.create` | `true` | Create a ServiceAccount for the BFF |
+| `bff.serviceAccount.name` | `""` | Override ServiceAccount name |
+| `bff.rbac.create` | `true` | Create ClusterRole and ClusterRoleBinding |
+| `bff.registryRepo` | `https://github.com/rh-ai-community-plugins/quickstarts-manager` | GitHub repo hosting the quickstart registry |
+| `bff.registryBranch` | `main` | Branch to fetch the registry file from |
+| `bff.registryFile` | `quickstarts.yaml` | Registry filename within the repo |
+| `bff.cacheTtl` | `300` | Cache duration in seconds for catalog data |
 
 For the complete list, see [`chart/values.yaml`](../../chart/values.yaml).

@@ -1,0 +1,42 @@
+{{- if and .Values.bff.enabled .Values.bff.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "quickstarts-manager.fullname" . }}-bff
+  labels:
+    {{- include "quickstarts-manager.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bff
+rules:
+  # Manage namespaces for quickstart deployments
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Manage workload resources created by quickstart Helm charts
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Manage core resources created by quickstart Helm charts
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "serviceaccounts", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Helm release secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Manage namespace-scoped RBAC resources created by quickstart Helm charts
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Manage networking resources created by quickstart Helm charts
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # Discover and manage OpenShift Routes created by quickstart Helm charts
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  # RBAC pre-checks via SelfSubjectAccessReview
+  - apiGroups: ["authorization.k8s.io"]
+    resources: ["selfsubjectaccessreviews"]
+    verbs: ["create"]
+{{- end }}
