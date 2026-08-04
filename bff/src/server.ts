@@ -1,5 +1,6 @@
 import express from 'express';
 import { getK8sBaseUrl } from './utils/k8sClient';
+import catalogRouter from './routes/catalog';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -20,6 +21,8 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.get('/api/config', (_req, res) => {
   res.json({ bffNamespace: POD_NAMESPACE });
 });
+
+app.use('/api/catalog', catalogRouter);
 
 app.listen(PORT, () => {
   try {
