@@ -40,6 +40,7 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
   onClose,
   onInstall,
 }) => {
+  const permissionsKey = JSON.stringify(quickstart.rbac?.requiredPermissions);
   const permissions: PermissionCheck[] | undefined = useMemo(
     () =>
       quickstart.rbac?.requiredPermissions?.map((p) => ({
@@ -47,7 +48,7 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
         resource: p.resource,
         verbs: p.verbs,
       })),
-    [quickstart.rbac?.requiredPermissions],
+    [permissionsKey],
   );
 
   const rbac = useAccessReview(namespace, permissions);

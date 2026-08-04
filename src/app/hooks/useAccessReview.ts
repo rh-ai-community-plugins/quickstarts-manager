@@ -68,6 +68,8 @@ export function useAccessReview(
   useEffect(() => {
     if (!namespace) {
       setResults([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 

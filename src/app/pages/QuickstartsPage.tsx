@@ -148,7 +148,16 @@ const QuickstartsPage: React.FC = () => {
           isDisabled={lifecycle.loading}
         />
       </PageSection>
-      <PageSection hasBodyWrapper={false} aria-live="polite">
+      <div aria-live="polite" className="pf-v6-screen-reader">
+        {!selectedProject
+          ? 'Select a project'
+          : status.loading
+            ? 'Loading status…'
+            : status.status
+              ? `Quickstart deployed: ${status.status.release.name}`
+              : 'Showing catalog'}
+      </div>
+      <PageSection hasBodyWrapper={false}>
         {renderContent()}
       </PageSection>
 

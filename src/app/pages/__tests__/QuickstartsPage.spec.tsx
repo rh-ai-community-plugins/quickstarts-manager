@@ -141,7 +141,7 @@ describe('QuickstartsPage', () => {
 
   it('should show prompt to select a project when none is selected', () => {
     render(<QuickstartsPage />);
-    expect(screen.getByText(/select a project/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/select a project/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('should show catalog view when namespace has no deployed quickstart', () => {
