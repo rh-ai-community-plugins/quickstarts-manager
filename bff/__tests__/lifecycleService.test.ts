@@ -203,6 +203,35 @@ describe('lifecycleService', () => {
       expect(result.message).toContain('not yet supported');
     });
 
+    it('rejects invalid OCI chart reference format', async () => {
+      const badOciMetadata = {
+        ...MOCK_METADATA,
+        deployment: {
+          ...MOCK_METADATA.deployment,
+          chart: { type: 'oci' as const, ref: 'not-a-valid-oci-ref' },
+        },
+      };
+      mockedGetQuickstartMetadata.mockResolvedValue(badOciMetadata);
+
+      const result = await installQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Invalid OCI chart reference');
+    });
+
+    it('fails when deployment.chart is missing', async () => {
+      const noChartMetadata = {
+        ...MOCK_METADATA,
+        deployment: { scope: 'project' as const },
+      } as unknown as QuickstartMetadata;
+      mockedGetQuickstartMetadata.mockResolvedValue(noChartMetadata);
+
+      const result = await installQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('no chart configuration');
+    });
+
     it('marks the correct step as failed on error', async () => {
       mockedHelmInstall.mockRejectedValue(new Error('helm install failed'));
 
@@ -305,6 +334,30 @@ describe('lifecycleService', () => {
       const failedStep = result.steps.find((s) => s.status === 'failed');
       expect(failedStep).toBeDefined();
       expect(failedStep!.id).toBe('helm-upgrade');
+    });
+
+    it('blocks upgrade when RBAC check fails', async () => {
+      mockedCheckRbacPermissions.mockResolvedValue({
+        allowed: false,
+        granted: [],
+        denied: [{ apiGroup: 'apps', resource: 'deployments', verb: 'create' }],
+      });
+
+      const result = await upgradeQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Insufficient permissions');
+      expect(mockedHelmUpgrade).not.toHaveBeenCalled();
+    });
+
+    it('skips RBAC check when no permissions are declared', async () => {
+      const metadataNoRbac = { ...MOCK_METADATA, rbac: undefined };
+      mockedGetQuickstartMetadata.mockResolvedValue(metadataNoRbac);
+
+      const result = await upgradeQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(true);
+      expect(mockedCheckRbacPermissions).not.toHaveBeenCalled();
     });
   });
 

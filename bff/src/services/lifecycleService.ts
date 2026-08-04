@@ -50,9 +50,14 @@ async function resolveQuickstart(name: string): Promise<{
   return { registry, metadata };
 }
 
+const OCI_REF_PATTERN = /^oci:\/\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)+$/;
+
 function resolveChartRef(metadata: QuickstartMetadata): string {
   const chart = metadata.deployment.chart;
   if (chart.type === 'oci') {
+    if (!OCI_REF_PATTERN.test(chart.ref)) {
+      throw new Error(`Invalid OCI chart reference format: "${chart.ref}"`);
+    }
     return chart.ref;
   }
   throw new Error(
@@ -159,6 +164,7 @@ export async function upgradeQuickstart(
   const steps: LifecycleStep[] = [
     createStep('resolve', 'Resolve quickstart metadata'),
     createStep('check-release', 'Verify existing release'),
+    createStep('rbac-check', 'Verify RBAC permissions'),
     createStep('helm-upgrade', 'Upgrade Helm release'),
   ];
   onProgress?.(steps);
@@ -182,11 +188,26 @@ export async function upgradeQuickstart(
 
     markRunning(steps[2]);
     onProgress?.(steps);
+    const requiredPermissions = metadata.rbac?.requiredPermissions;
+    if (requiredPermissions && requiredPermissions.length > 0) {
+      const rbacResult = await checkRbacPermissions(token, namespace, requiredPermissions);
+      if (!rbacResult.allowed) {
+        const deniedSummary = rbacResult.denied
+          .map((d) => `${d.verb} ${d.resource}${d.apiGroup ? ' (' + d.apiGroup + ')' : ''}`)
+          .join(', ');
+        throw new Error(`Insufficient permissions in namespace "${namespace}": missing ${deniedSummary}`);
+      }
+    }
+    markCompleted(steps[2]);
+    onProgress?.(steps);
+
+    markRunning(steps[3]);
+    onProgress?.(steps);
     const chartRef = resolveChartRef(metadata);
     const mergedValues = { ...metadata.deployment.defaultValues, ...values };
     const helmValues = Object.keys(mergedValues).length > 0 ? mergedValues : undefined;
     await helmUpgrade(quickstartName, chartRef, namespace, token, helmValues, metadata.version);
-    markCompleted(steps[2]);
+    markCompleted(steps[3]);
     onProgress?.(steps);
 
     return {

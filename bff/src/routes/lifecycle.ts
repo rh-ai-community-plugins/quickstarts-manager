@@ -33,6 +33,8 @@ function sendSSE(
     res.write(': keepalive\n\n');
   }, 15_000);
 
+  req.on('close', () => clearInterval(heartbeat));
+
   const onProgress: LifecycleProgressCallback = (steps) => {
     const data = JSON.stringify({ steps: steps.map((s) => ({ ...s })) });
     res.write(`event: progress\ndata: ${data}\n\n`);
@@ -44,8 +46,9 @@ function sendSSE(
       res.write(`event: complete\ndata: ${JSON.stringify(result)}\n\n`);
       res.end();
     })
-    .catch(() => {
+    .catch((err) => {
       clearInterval(heartbeat);
+      console.error('Lifecycle SSE operation failed:', (err as Error).message);
       const fallback: LifecycleResponse = {
         success: false,
         message: 'Operation failed',

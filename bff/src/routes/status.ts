@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { helmList } from '../services/helmService';
 import { discoverRoutes } from '../services/k8sApiClient';
-import { extractToken, validateNamespace } from '../utils/validation';
+import { extractToken, isProtectedNamespace, K8S_NAMESPACE_PATTERN } from '../utils/validation';
 import { QuickstartStatusResponse } from '../types/status';
 
 const router = Router();
@@ -14,10 +14,13 @@ router.get('/', async (req: Request, res: Response) => {
     return;
   }
 
-  const nsError = validateNamespace(namespace);
-  if (nsError) {
-    const isProtected = nsError.includes('protected');
-    res.status(isProtected ? 403 : 400).json({ error: isProtected ? 'Operations on protected namespaces are not allowed' : 'Invalid namespace format' });
+  if (!K8S_NAMESPACE_PATTERN.test(namespace)) {
+    res.status(400).json({ error: 'Invalid namespace format' });
+    return;
+  }
+
+  if (isProtectedNamespace(namespace)) {
+    res.status(403).json({ error: 'Operations on protected namespaces are not allowed' });
     return;
   }
 

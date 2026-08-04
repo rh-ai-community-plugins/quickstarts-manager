@@ -89,6 +89,22 @@ describe('helmService', () => {
         validateHelmValues({ list: ['a', 'b'] as unknown }),
       ).toThrow('only string, number, and boolean');
     });
+
+    it('rejects too many values', () => {
+      const manyValues: Record<string, string> = {};
+      for (let i = 0; i < 51; i++) {
+        manyValues[`key${i}`] = `value${i}`;
+      }
+      expect(() => validateHelmValues(manyValues)).toThrow('Too many Helm values');
+    });
+
+    it('accepts exactly 50 values', () => {
+      const values: Record<string, string> = {};
+      for (let i = 0; i < 50; i++) {
+        values[`key${i}`] = `value${i}`;
+      }
+      expect(() => validateHelmValues(values)).not.toThrow();
+    });
   });
 
   describe('sanitizeHelmError', () => {
