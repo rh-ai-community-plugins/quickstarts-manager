@@ -45,7 +45,7 @@ describe('LifecycleProgressModal', () => {
   it('should render progress steps', () => {
     render(<LifecycleProgressModal {...defaultProps} />);
     expect(screen.getByText('Resolving quickstart')).toBeInTheDocument();
-    expect(screen.getByText('Running helm install')).toBeInTheDocument();
+    expect(screen.getAllByText('Running helm install').length).toBeGreaterThanOrEqual(1);
   });
 
   it('should show success title when completed', () => {

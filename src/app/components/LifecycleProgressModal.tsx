@@ -73,6 +73,9 @@ const LifecycleProgressModal: React.FC<LifecycleProgressModalProps> = ({
     >
       <ModalHeader title={title} />
       <ModalBody>
+        <div aria-live="polite" aria-atomic="false" className="pf-v6-screen-reader">
+          {steps.filter((s) => s.status === 'running').map((s) => s.label).join(', ')}
+        </div>
         {steps.length > 0 && (
           <ProgressStepper isVertical>
             {steps.map((step) => (

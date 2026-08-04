@@ -148,7 +148,9 @@ const QuickstartsPage: React.FC = () => {
           isDisabled={lifecycle.loading}
         />
       </PageSection>
-      <PageSection hasBodyWrapper={false}>{renderContent()}</PageSection>
+      <PageSection hasBodyWrapper={false} aria-live="polite">
+        {renderContent()}
+      </PageSection>
 
       <LifecycleProgressModal
         isOpen={showProgress}
