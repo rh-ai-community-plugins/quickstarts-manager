@@ -8,6 +8,16 @@ import type {
 
 const API_BASE = '/quickstarts-manager/api/quickstarts';
 
+class StreamInterruptedError extends Error {
+  constructor() {
+    super(
+      'Connection lost during operation. The operation may still be running. ' +
+        'Close this dialog and refresh to check the current status.',
+    );
+    this.name = 'StreamInterruptedError';
+  }
+}
+
 export interface QuickstartLifecycleState {
   loading: boolean;
   operation: LifecycleOperation | null;
@@ -109,7 +119,7 @@ async function lifecycleStreamRequest(
   }
 
   if (!finalResult) {
-    throw new Error('Stream ended without a complete event');
+    throw new StreamInterruptedError();
   }
 
   return finalResult;
@@ -158,13 +168,16 @@ export function useQuickstartLifecycle(): QuickstartLifecycle {
           message,
           steps: [],
         };
-        setState({
+        setState((prev) => ({
           loading: false,
           operation,
-          steps: [],
-          result: failedResult,
+          steps: err instanceof StreamInterruptedError ? prev.steps : [],
+          result: {
+            ...failedResult,
+            steps: err instanceof StreamInterruptedError ? prev.steps : [],
+          },
           error: message,
-        });
+        }));
         return failedResult;
       }
     },

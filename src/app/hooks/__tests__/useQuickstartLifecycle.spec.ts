@@ -271,6 +271,36 @@ describe('useQuickstartLifecycle', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('should preserve steps and show friendly message when SSE stream drops', async () => {
+    const reader = {
+      read: jest
+        .fn()
+        .mockResolvedValueOnce({
+          done: false,
+          value: `event: progress\ndata: ${JSON.stringify({ steps: progressSteps })}\n\n`,
+        })
+        .mockResolvedValueOnce({ done: true, value: undefined }),
+    };
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'text/event-stream' }),
+      body: {
+        pipeThrough: () => ({ getReader: () => reader }),
+      },
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    await act(async () => {
+      await result.current.install('my-app', 'test-ns');
+    });
+
+    expect(result.current.error).toContain('Connection lost');
+    expect(result.current.result?.success).toBe(false);
+    expect(result.current.steps).toEqual(progressSteps);
+  });
+
   it('should encode special characters in quickstart name', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
