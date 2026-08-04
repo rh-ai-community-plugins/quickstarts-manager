@@ -8,6 +8,16 @@ import {
 import { QuickstartDetailPanel } from '../QuickstartDetailPanel';
 import { CatalogQuickstart } from '~/app/types/catalog';
 
+const mockAccessReview = {
+  results: [] as Array<{ verb: string; resource: string; group: string; allowed: boolean }>,
+  loading: false,
+  error: null as string | null,
+};
+
+jest.mock('~/app/hooks/useAccessReview', () => ({
+  useAccessReview: () => mockAccessReview,
+}));
+
 const fullQuickstart: CatalogQuickstart = {
   name: 'lemonade-stand',
   repository: 'https://github.com/example/lemonade',
@@ -64,6 +74,12 @@ const renderPanel = (
 };
 
 describe('QuickstartDetailPanel', () => {
+  beforeEach(() => {
+    mockAccessReview.results = [];
+    mockAccessReview.loading = false;
+    mockAccessReview.error = null;
+  });
+
   it('should render display name and description', () => {
     renderPanel();
 
@@ -180,5 +196,39 @@ describe('QuickstartDetailPanel', () => {
         'https://github.com/example/lemonade (deploy/helm/)',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('should show "Checking permissions" while RBAC is loading', () => {
+    mockAccessReview.loading = true;
+    renderPanel(fullQuickstart, jest.fn());
+
+    expect(screen.getByText('Checking permissions…')).toBeInTheDocument();
+  });
+
+  it('should disable install button when RBAC check denies permissions', () => {
+    mockAccessReview.results = [
+      { verb: 'create', resource: 'deployments', group: 'apps', allowed: false },
+      { verb: 'create', resource: 'services', group: '', allowed: true },
+    ];
+    renderPanel(fullQuickstart, jest.fn());
+
+    expect(screen.getByText('Insufficient permissions')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Install to my-namespace' }),
+    ).toBeDisabled();
+  });
+
+  it('should enable install button when all RBAC checks pass', () => {
+    mockAccessReview.results = [
+      { verb: 'create', resource: 'deployments', group: 'apps', allowed: true },
+      { verb: 'create', resource: 'services', group: '', allowed: true },
+    ];
+    const onInstall = jest.fn();
+    renderPanel(fullQuickstart, onInstall);
+
+    expect(screen.queryByText('Insufficient permissions')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Install to my-namespace' }),
+    ).toBeEnabled();
   });
 });

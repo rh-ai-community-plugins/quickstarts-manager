@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
+  Alert,
   Button,
   Content,
   DescriptionList,
@@ -17,10 +18,14 @@ import {
   LabelGroup,
   List,
   ListItem,
+  Spinner,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { CatalogQuickstart } from '~/app/types/catalog';
+import { useAccessReview } from '~/app/hooks/useAccessReview';
+import type { PermissionCheck } from '~/app/hooks/useAccessReview';
 
 export interface QuickstartDetailPanelProps {
   quickstart: CatalogQuickstart;
@@ -35,6 +40,21 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
   onClose,
   onInstall,
 }) => {
+  const permissions: PermissionCheck[] | undefined = useMemo(
+    () =>
+      quickstart.rbac?.requiredPermissions?.map((p) => ({
+        apiGroup: p.apiGroup,
+        resource: p.resource,
+        verbs: p.verbs,
+      })),
+    [quickstart.rbac?.requiredPermissions],
+  );
+
+  const rbac = useAccessReview(namespace, permissions);
+
+  const deniedPermissions = rbac.results.filter((r) => !r.allowed);
+  const rbacBlocked = !rbac.loading && deniedPermissions.length > 0;
+
   const chartSource =
     quickstart.deployment?.chart.type === 'oci'
       ? quickstart.deployment.chart.ref
@@ -172,14 +192,47 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
             </FlexItem>
           )}
 
+          {rbacBlocked && (
+            <FlexItem>
+              <Alert
+                variant="danger"
+                title="Insufficient permissions"
+                isInline
+                isPlain
+              >
+                <List isPlain>
+                  {deniedPermissions.map((p) => (
+                    <ListItem key={`${p.group}/${p.resource}/${p.verb}`}>
+                      {p.resource}
+                      {p.group && ` (${p.group})`}: {p.verb}
+                    </ListItem>
+                  ))}
+                </List>
+              </Alert>
+            </FlexItem>
+          )}
+
           <FlexItem>
-            <Button
-              variant="primary"
-              onClick={() => onInstall?.(quickstart)}
-              isDisabled={!onInstall}
-            >
-              Install to {namespace}
-            </Button>
+            {rbac.loading ? (
+              <Button variant="primary" isDisabled>
+                <Spinner size="sm" aria-label="Checking permissions" />{' '}
+                Checking permissions…
+              </Button>
+            ) : rbacBlocked ? (
+              <Tooltip content="You lack required permissions in this namespace">
+                <Button variant="primary" isDisabled>
+                  Install to {namespace}
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => onInstall?.(quickstart)}
+                isDisabled={!onInstall}
+              >
+                Install to {namespace}
+              </Button>
+            )}
           </FlexItem>
         </Flex>
       </DrawerPanelBody>

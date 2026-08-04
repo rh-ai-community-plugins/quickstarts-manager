@@ -49,10 +49,21 @@ const DEFAULT_CHECKS: ResourceCheck[] = [
 
 const VERBS = ['get', 'list', 'create', 'delete'];
 
-export function useAccessReview(namespace: string | null) {
+export interface PermissionCheck {
+  apiGroup: string;
+  resource: string;
+  verbs: string[];
+}
+
+export function useAccessReview(
+  namespace: string | null,
+  permissions?: PermissionCheck[],
+) {
   const [results, setResults] = useState<AccessReviewResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const permKey = permissions ? JSON.stringify(permissions) : '';
 
   useEffect(() => {
     if (!namespace) {
@@ -64,9 +75,19 @@ export function useAccessReview(namespace: string | null) {
     setLoading(true);
     setError(null);
 
-    const checks = DEFAULT_CHECKS.flatMap((check) =>
-      VERBS.map((verb) => ({ verb, ...check })),
-    );
+    const checks = permissions
+      ? permissions.flatMap((p) =>
+          p.verbs.map((verb) => ({ verb, group: p.apiGroup, resource: p.resource })),
+        )
+      : DEFAULT_CHECKS.flatMap((check) =>
+          VERBS.map((verb) => ({ verb, ...check })),
+        );
+
+    if (checks.length === 0) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
 
     Promise.allSettled(
       checks.map(({ verb, group, resource }) =>
@@ -97,7 +118,7 @@ export function useAccessReview(namespace: string | null) {
       });
 
     return () => { cancelled = true; };
-  }, [namespace]);
+  }, [namespace, permKey]);
 
   return { results, loading, error };
 }
