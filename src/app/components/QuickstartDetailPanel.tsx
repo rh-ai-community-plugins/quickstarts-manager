@@ -75,18 +75,19 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
                   <DescriptionListTerm>Maintainer</DescriptionListTerm>
                   <DescriptionListDescription>
                     {quickstart.maintainer.name}
-                    {quickstart.maintainer.github && (
-                      <>
-                        {' '}
-                        <a
-                          href={`https://github.com/${quickstart.maintainer.github}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          @{quickstart.maintainer.github}
-                        </a>
-                      </>
-                    )}
+                    {quickstart.maintainer.github &&
+                      /^[a-zA-Z0-9-]+$/.test(quickstart.maintainer.github) && (
+                        <>
+                          {' '}
+                          <a
+                            href={`https://github.com/${quickstart.maintainer.github}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            @{quickstart.maintainer.github}
+                          </a>
+                        </>
+                      )}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               )}
@@ -134,8 +135,8 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
             <FlexItem>
               <Title headingLevel="h3">Prerequisites</Title>
               <List>
-                {quickstart.prerequisites.map((p) => (
-                  <ListItem key={p}>{p}</ListItem>
+                {quickstart.prerequisites.map((p, idx) => (
+                  <ListItem key={idx}>{p}</ListItem>
                 ))}
               </List>
             </FlexItem>
@@ -146,9 +147,9 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
               <FlexItem>
                 <Title headingLevel="h3">Required permissions</Title>
                 <List>
-                  {quickstart.rbac.requiredPermissions.map((perm) => (
+                  {quickstart.rbac.requiredPermissions.map((perm, idx) => (
                     <ListItem
-                      key={`${perm.apiGroup}/${perm.resource}`}
+                      key={idx}
                     >
                       {perm.resource}
                       {perm.apiGroup && ` (${perm.apiGroup})`}:{' '}

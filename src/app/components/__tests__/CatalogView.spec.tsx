@@ -163,9 +163,9 @@ describe('CatalogView', () => {
       />,
     );
 
-    const toolbar = screen.getByLabelText('Tags').closest('.pf-v6-c-label-group');
+    const toolbar = screen.getByLabelText('Tags').closest('.pf-v6-c-label-group') as HTMLElement;
     expect(toolbar).toBeTruthy();
-    const ragLabel = within(toolbar!).getByText('rag');
+    const ragLabel = within(toolbar).getByText('rag');
     await user.click(ragLabel);
 
     expect(screen.getByText('RAG Pipeline')).toBeInTheDocument();
