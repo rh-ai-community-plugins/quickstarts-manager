@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CreateProjectModal, toResourceName, validateResourceName } from '../CreateProjectModal';
-import { createK8sResource } from '~/app/hooks/useK8sResources';
+import { createK8sResource } from '~/app/utils/k8sApi';
 
-jest.mock('~/app/hooks/useK8sResources', () => ({
+jest.mock('~/app/utils/k8sApi', () => ({
   createK8sResource: jest.fn(),
 }));
 
