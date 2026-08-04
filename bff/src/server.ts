@@ -2,6 +2,7 @@ import express from 'express';
 import { getK8sBaseUrl } from './utils/k8sClient';
 import catalogRouter from './routes/catalog';
 import statusRouter from './routes/status';
+import lifecycleRouter from './routes/lifecycle';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -25,6 +26,7 @@ app.get('/api/config', (_req, res) => {
 
 app.use('/api/catalog', catalogRouter);
 app.use('/api/quickstarts/status', statusRouter);
+app.use('/api/quickstarts', lifecycleRouter);
 
 app.listen(PORT, () => {
   try {
