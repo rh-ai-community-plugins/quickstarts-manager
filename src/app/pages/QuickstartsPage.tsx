@@ -15,6 +15,7 @@ import { useLastSelectedProject } from '~/app/hooks/useLastSelectedProject';
 import { useQuickstartCatalog } from '~/app/hooks/useQuickstartCatalog';
 import { useQuickstartStatus } from '~/app/hooks/useQuickstartStatus';
 import { useQuickstartLifecycle } from '~/app/hooks/useQuickstartLifecycle';
+import { isProtectedNamespace } from '~/app/utils/namespace';
 import type { CatalogQuickstart } from '~/app/types/catalog';
 
 const QuickstartsPage: React.FC = () => {
@@ -62,6 +63,8 @@ const QuickstartsPage: React.FC = () => {
     lifecycle.reset();
     status.refresh();
   }, [lifecycle.reset, status.refresh]);
+
+  const isProtected = selectedProject ? isProtectedNamespace(selectedProject) : false;
 
   const catalogVersion = status.status
     ? catalog.quickstarts.find(
@@ -112,14 +115,27 @@ const QuickstartsPage: React.FC = () => {
     }
 
     return (
-      <CatalogView
-        quickstarts={catalog.quickstarts}
-        loading={catalog.loading}
-        error={catalog.error}
-        onRefresh={catalog.refresh}
-        namespace={selectedProject}
-        onInstall={handleInstall}
-      />
+      <>
+        {isProtected && (
+          <Alert
+            variant="warning"
+            title="Protected namespace"
+            isInline
+            className="pf-v6-u-mb-md"
+          >
+            Installing quickstarts into system namespaces is not allowed.
+            Select a different project.
+          </Alert>
+        )}
+        <CatalogView
+          quickstarts={catalog.quickstarts}
+          loading={catalog.loading}
+          error={catalog.error}
+          onRefresh={catalog.refresh}
+          namespace={selectedProject}
+          onInstall={isProtected ? undefined : handleInstall}
+        />
+      </>
     );
   };
 

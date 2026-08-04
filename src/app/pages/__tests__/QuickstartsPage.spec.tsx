@@ -18,6 +18,12 @@ jest.mock('~/app/components/ProjectSelector', () => ({
         Select
       </button>
       <button
+        data-testid="select-protected"
+        onClick={() => onSelect('kube-system')}
+      >
+        Select Protected
+      </button>
+      <button
         data-testid="clear-project"
         onClick={() => onSelect(null)}
       >
@@ -88,8 +94,15 @@ jest.mock('~/app/hooks/useQuickstartLifecycle', () => ({
 }));
 
 jest.mock('~/app/components/CatalogView', () => ({
-  CatalogView: ({ namespace }: { namespace: string }) => (
-    <div data-testid="catalog-view">Catalog for {namespace}</div>
+  CatalogView: ({ namespace, onInstall }: { namespace: string; onInstall?: () => void }) => (
+    <div data-testid="catalog-view">
+      Catalog for {namespace}
+      {onInstall ? (
+        <span data-testid="install-enabled">install enabled</span>
+      ) : (
+        <span data-testid="install-disabled">install disabled</span>
+      )}
+    </div>
   ),
 }));
 
@@ -183,5 +196,22 @@ describe('QuickstartsPage', () => {
     render(<QuickstartsPage />);
     expect(screen.getByTestId('progress-modal')).toBeInTheDocument();
     expect(screen.getByTestId('remove-modal')).toBeInTheDocument();
+  });
+
+  it('should show warning and disable install for protected namespaces', () => {
+    render(<QuickstartsPage />);
+    fireEvent.click(screen.getByTestId('select-protected'));
+
+    expect(screen.getByText('Protected namespace')).toBeInTheDocument();
+    expect(screen.getByText(/Installing quickstarts into system namespaces is not allowed/)).toBeInTheDocument();
+    expect(screen.getByTestId('install-disabled')).toBeInTheDocument();
+  });
+
+  it('should enable install for non-protected namespaces', () => {
+    render(<QuickstartsPage />);
+    fireEvent.click(screen.getByTestId('select-project'));
+
+    expect(screen.queryByText('Protected namespace')).not.toBeInTheDocument();
+    expect(screen.getByTestId('install-enabled')).toBeInTheDocument();
   });
 });
