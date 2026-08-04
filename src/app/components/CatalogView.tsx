@@ -18,7 +18,6 @@ import {
   Label,
   LabelGroup,
   SearchInput,
-  Spinner,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -27,6 +26,7 @@ import {
 } from '@patternfly/react-core';
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { CatalogQuickstart } from '~/app/types/catalog';
+import { CatalogSkeleton } from './CatalogSkeleton';
 import { QuickstartDetailPanel } from './QuickstartDetailPanel';
 
 export interface CatalogViewProps {
@@ -86,7 +86,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   };
 
   if (loading && quickstarts.length === 0) {
-    return <Spinner aria-label="Loading catalog" />;
+    return <CatalogSkeleton />;
   }
 
   if (error && quickstarts.length === 0) {

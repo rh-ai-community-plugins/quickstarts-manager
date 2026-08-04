@@ -78,7 +78,7 @@ describe('CatalogView', () => {
     expect(screen.getByText('no-metadata')).toBeInTheDocument();
   });
 
-  it('should show spinner when loading with no data', () => {
+  it('should show skeleton loading state when loading with no data', () => {
     render(
       <CatalogView
         quickstarts={[]}
@@ -89,7 +89,7 @@ describe('CatalogView', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Loading catalog')).toBeInTheDocument();
+    expect(screen.getByText('Loading catalog search')).toBeInTheDocument();
   });
 
   it('should show error state with retry button', async () => {

@@ -99,6 +99,10 @@ jest.mock('~/app/components/StatusView', () => ({
   ),
 }));
 
+jest.mock('~/app/components/StatusSkeleton', () => ({
+  StatusSkeleton: () => <div data-testid="status-skeleton">Loading status...</div>,
+}));
+
 jest.mock('~/app/components/LifecycleProgressModal', () => ({
   __esModule: true,
   default: () => <div data-testid="progress-modal" />,
@@ -154,15 +158,13 @@ describe('QuickstartsPage', () => {
     expect(screen.getByText('Status for test-project')).toBeInTheDocument();
   });
 
-  it('should show spinner while checking status', () => {
+  it('should show skeleton while checking status', () => {
     mockStatusHook.loading = true;
 
     render(<QuickstartsPage />);
     fireEvent.click(screen.getByTestId('select-project'));
 
-    expect(
-      screen.getByLabelText('Checking namespace status'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('status-skeleton')).toBeInTheDocument();
   });
 
   it('should show warning when status check fails', () => {

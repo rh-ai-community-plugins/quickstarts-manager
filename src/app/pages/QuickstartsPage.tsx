@@ -3,12 +3,12 @@ import {
   PageSection,
   EmptyState,
   EmptyStateBody,
-  Spinner,
   Alert,
 } from '@patternfly/react-core';
 import { ProjectSelector } from '~/app/components/ProjectSelector';
 import { CatalogView } from '~/app/components/CatalogView';
 import { StatusView } from '~/app/components/StatusView';
+import { StatusSkeleton } from '~/app/components/StatusSkeleton';
 import LifecycleProgressModal from '~/app/components/LifecycleProgressModal';
 import RemoveQuickstartModal from '~/app/components/RemoveQuickstartModal';
 import { useLastSelectedProject } from '~/app/hooks/useLastSelectedProject';
@@ -82,7 +82,7 @@ const QuickstartsPage: React.FC = () => {
     }
 
     if (status.loading) {
-      return <Spinner aria-label="Checking namespace status" />;
+      return <StatusSkeleton />;
     }
 
     if (status.error) {
