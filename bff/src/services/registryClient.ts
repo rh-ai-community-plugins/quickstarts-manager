@@ -1,8 +1,8 @@
 import yaml from 'js-yaml';
 import { fetchUrl } from '../utils/httpClient';
+import { buildGitHubRawUrl } from '../utils/github';
+import { getCacheTtlMs } from '../utils/cache';
 import { RegistryFile, RegistryQuickstart } from '../types/catalog';
-
-const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface CacheEntry {
   quickstarts: RegistryQuickstart[];
@@ -17,27 +17,23 @@ function getRegistryUrl(): string {
   const branch = process.env.QUICKSTART_REGISTRY_BRANCH ?? 'main';
   const file = process.env.QUICKSTART_REGISTRY_FILE ?? 'quickstarts.yaml';
 
-  const match = repo.match(/github\.com\/([^/]+)\/([^/]+)/);
-  if (!match) {
+  const url = buildGitHubRawUrl(repo, branch, file);
+  if (!url) {
     throw new Error(`Invalid registry repo URL: ${repo}`);
   }
-  const [, owner, repoName] = match;
-  const cleanRepo = repoName.replace(/\.git$/, '');
-  return `https://raw.githubusercontent.com/${owner}/${cleanRepo}/${branch}/${file}`;
-}
-
-function getCacheTtl(): number {
-  const envTtl = process.env.CACHE_TTL;
-  if (envTtl) {
-    const parsed = parseInt(envTtl, 10);
-    if (!isNaN(parsed) && parsed > 0) return parsed * 1000;
-  }
-  return DEFAULT_CACHE_TTL_MS;
+  return url;
 }
 
 function isCacheValid(): boolean {
   if (!cache) return false;
-  return Date.now() - cache.fetchedAt < getCacheTtl();
+  return Date.now() - cache.fetchedAt < getCacheTtlMs();
+}
+
+function isValidEntry(entry: unknown): entry is RegistryQuickstart {
+  if (!entry || typeof entry !== 'object') return false;
+  const e = entry as Record<string, unknown>;
+  return typeof e.name === 'string' && e.name.length > 0
+    && typeof e.repository === 'string' && e.repository.length > 0;
 }
 
 export async function getRegistryQuickstarts(forceRefresh = false): Promise<RegistryQuickstart[]> {
@@ -55,8 +51,14 @@ export async function getRegistryQuickstarts(forceRefresh = false): Promise<Regi
       throw new Error('Invalid registry format: missing quickstarts array');
     }
 
+    const validEntries = parsed.quickstarts.filter((entry) => {
+      if (isValidEntry(entry)) return true;
+      console.warn('Skipping invalid registry entry:', JSON.stringify(entry));
+      return false;
+    });
+
     cache = {
-      quickstarts: parsed.quickstarts,
+      quickstarts: validEntries,
       fetchedAt: Date.now(),
     };
 

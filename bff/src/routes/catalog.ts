@@ -6,6 +6,8 @@ import { CatalogQuickstart, QuickstartMetadata, RegistryQuickstart } from '../ty
 const router = Router();
 
 const QUICKSTART_NAME_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
+const REFRESH_COOLDOWN_MS = 30_000;
+let lastRefreshAt = 0;
 
 function buildCatalogQuickstart(
   registry: RegistryQuickstart,
@@ -35,9 +37,15 @@ function buildCatalogQuickstart(
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const forceRefresh = req.query.refresh === 'true';
+    let forceRefresh = req.query.refresh === 'true';
     if (forceRefresh) {
-      clearMetadataCache();
+      const now = Date.now();
+      if (now - lastRefreshAt < REFRESH_COOLDOWN_MS) {
+        forceRefresh = false;
+      } else {
+        lastRefreshAt = now;
+        clearMetadataCache();
+      }
     }
 
     const registryQuickstarts = await getRegistryQuickstarts(forceRefresh);
@@ -84,7 +92,7 @@ router.get('/:name', async (req: Request, res: Response) => {
     const registryEntry = registryQuickstarts.find((qs) => qs.name === name);
 
     if (!registryEntry) {
-      res.status(404).json({ error: `Quickstart '${name}' not found in registry` });
+      res.status(404).json({ error: 'Quickstart not found in registry' });
       return;
     }
 
@@ -93,7 +101,7 @@ router.get('/:name', async (req: Request, res: Response) => {
 
     res.json(quickstart);
   } catch (err) {
-    console.error(`Failed to fetch quickstart detail for ${req.params.name}:`, (err as Error).message);
+    console.error('Failed to fetch quickstart details:', (err as Error).message);
     res.status(502).json({ error: 'Failed to fetch quickstart details' });
   }
 });

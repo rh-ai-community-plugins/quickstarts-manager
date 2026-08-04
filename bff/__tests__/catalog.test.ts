@@ -148,12 +148,14 @@ describe('catalog routes', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('returns 404 for unknown quickstart', async () => {
+    it('returns 404 for unknown quickstart without reflecting name', async () => {
       mockedGetRegistry.mockResolvedValue(REGISTRY_ENTRIES);
 
       const res = await request(port, '/api/catalog/nonexistent');
       expect(res.statusCode).toBe(404);
-      expect(JSON.parse(res.body).error).toContain('not found');
+      const body = JSON.parse(res.body);
+      expect(body.error).toContain('not found');
+      expect(body.error).not.toContain('nonexistent');
     });
 
     it('returns quickstart with metadataAvailable=false when metadata fetch fails', async () => {

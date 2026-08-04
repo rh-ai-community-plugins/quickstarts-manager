@@ -100,6 +100,23 @@ describe('registryClient', () => {
     await expect(getRegistryQuickstarts()).rejects.toThrow('Invalid registry format');
   });
 
+  it('filters out invalid registry entries', async () => {
+    const yamlWithInvalid = `
+quickstarts:
+  - name: valid-qs
+    repository: https://github.com/org/valid-qs
+  - name: ""
+    repository: https://github.com/org/empty-name
+  - repository: https://github.com/org/no-name
+  - name: no-repo
+`;
+    mockedFetchUrl.mockResolvedValue(yamlWithInvalid);
+
+    const result = await getRegistryQuickstarts();
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('valid-qs');
+  });
+
   it('respects CACHE_TTL env var (in seconds)', async () => {
     process.env.CACHE_TTL = '1';
     mockedFetchUrl.mockResolvedValue(VALID_YAML);

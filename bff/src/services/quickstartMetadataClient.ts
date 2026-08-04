@@ -1,8 +1,9 @@
 import yaml from 'js-yaml';
 import { fetchUrl } from '../utils/httpClient';
+import { buildGitHubRawUrl } from '../utils/github';
+import { getCacheTtlMs } from '../utils/cache';
 import { QuickstartMetadata, RegistryQuickstart } from '../types/catalog';
 
-const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_CONCURRENCY = 5;
 
 interface CacheEntry {
@@ -11,15 +12,6 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-
-function getCacheTtl(): number {
-  const envTtl = process.env.CACHE_TTL;
-  if (envTtl) {
-    const parsed = parseInt(envTtl, 10);
-    if (!isNaN(parsed) && parsed > 0) return parsed * 1000;
-  }
-  return DEFAULT_CACHE_TTL_MS;
-}
 
 function getConcurrency(): number {
   const envVal = process.env.METADATA_FETCH_CONCURRENCY;
@@ -31,19 +23,11 @@ function getConcurrency(): number {
 }
 
 function isCacheValid(entry: CacheEntry): boolean {
-  return Date.now() - entry.fetchedAt < getCacheTtl();
-}
-
-function buildRawUrl(quickstart: RegistryQuickstart): string | null {
-  const match = quickstart.repository.match(/github\.com\/([^/]+)\/([^/]+)/);
-  if (!match) return null;
-  const [, owner, repo] = match;
-  const cleanRepo = repo.replace(/\.git$/, '');
-  return `https://raw.githubusercontent.com/${owner}/${cleanRepo}/main/quickstart.yaml`;
+  return Date.now() - entry.fetchedAt < getCacheTtlMs();
 }
 
 async function fetchQuickstartYaml(quickstart: RegistryQuickstart): Promise<QuickstartMetadata | null> {
-  const rawUrl = buildRawUrl(quickstart);
+  const rawUrl = buildGitHubRawUrl(quickstart.repository, 'main', 'quickstart.yaml');
   if (!rawUrl) {
     console.warn(`Cannot build raw URL for quickstart ${quickstart.name}: ${quickstart.repository}`);
     return null;
