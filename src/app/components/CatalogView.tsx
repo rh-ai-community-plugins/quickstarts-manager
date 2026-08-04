@@ -35,6 +35,7 @@ export interface CatalogViewProps {
   error: string | null;
   onRefresh: (bypassCache?: boolean) => void;
   namespace: string;
+  onInstall?: (quickstart: CatalogQuickstart) => void;
 }
 
 export const CatalogView: React.FC<CatalogViewProps> = ({
@@ -43,6 +44,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   error,
   onRefresh,
   namespace,
+  onInstall,
 }) => {
   const [searchText, setSearchText] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -236,6 +238,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               quickstart={selectedQuickstart}
               namespace={namespace}
               onClose={() => setSelectedQuickstart(null)}
+              onInstall={onInstall}
             />
           ) : undefined
         }
