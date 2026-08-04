@@ -39,6 +39,7 @@ const mockCatalog = {
       metadataAvailable: true,
       displayName: 'Demo App',
       description: 'A demo application',
+      version: '1.0.0',
     },
   ],
   loading: false,
@@ -47,10 +48,31 @@ const mockCatalog = {
 };
 
 const mockStatusHook = {
-  status: null as null | { release: { name: string; namespace: string; status: string; chart: string; appVersion: string }; routes: never[] },
+  status: null as null | {
+    release: {
+      name: string;
+      namespace: string;
+      status: string;
+      chart: string;
+      appVersion: string;
+    };
+    routes: Array<{ name: string; url: string }>;
+  },
   loading: false,
   error: null as string | null,
   refresh: jest.fn(),
+};
+
+const mockLifecycle = {
+  loading: false,
+  operation: null,
+  steps: [],
+  result: null,
+  error: null,
+  install: jest.fn(),
+  upgrade: jest.fn(),
+  remove: jest.fn(),
+  reset: jest.fn(),
 };
 
 jest.mock('~/app/hooks/useQuickstartCatalog', () => ({
@@ -61,10 +83,30 @@ jest.mock('~/app/hooks/useQuickstartStatus', () => ({
   useQuickstartStatus: () => mockStatusHook,
 }));
 
+jest.mock('~/app/hooks/useQuickstartLifecycle', () => ({
+  useQuickstartLifecycle: () => mockLifecycle,
+}));
+
 jest.mock('~/app/components/CatalogView', () => ({
   CatalogView: ({ namespace }: { namespace: string }) => (
     <div data-testid="catalog-view">Catalog for {namespace}</div>
   ),
+}));
+
+jest.mock('~/app/components/StatusView', () => ({
+  StatusView: ({ namespace }: { namespace: string }) => (
+    <div data-testid="status-view">Status for {namespace}</div>
+  ),
+}));
+
+jest.mock('~/app/components/LifecycleProgressModal', () => ({
+  __esModule: true,
+  default: () => <div data-testid="progress-modal" />,
+}));
+
+jest.mock('~/app/components/RemoveQuickstartModal', () => ({
+  __esModule: true,
+  default: () => <div data-testid="remove-modal" />,
 }));
 
 describe('QuickstartsPage', () => {
@@ -93,7 +135,7 @@ describe('QuickstartsPage', () => {
     expect(screen.getByText('Catalog for test-project')).toBeInTheDocument();
   });
 
-  it('should show status placeholder when namespace has a deployed quickstart', () => {
+  it('should show status view when namespace has a deployed quickstart', () => {
     mockStatusHook.status = {
       release: {
         name: 'my-app',
@@ -108,8 +150,8 @@ describe('QuickstartsPage', () => {
     render(<QuickstartsPage />);
     fireEvent.click(screen.getByTestId('select-project'));
 
-    expect(screen.getByText('Quickstart deployed')).toBeInTheDocument();
-    expect(screen.getByText('Quickstart deployed')).toBeInTheDocument();
+    expect(screen.getByTestId('status-view')).toBeInTheDocument();
+    expect(screen.getByText('Status for test-project')).toBeInTheDocument();
   });
 
   it('should show spinner while checking status', () => {
@@ -133,5 +175,11 @@ describe('QuickstartsPage', () => {
       screen.getByText('Could not check namespace status'),
     ).toBeInTheDocument();
     expect(screen.getByText('Connection refused')).toBeInTheDocument();
+  });
+
+  it('should render progress and remove modals', () => {
+    render(<QuickstartsPage />);
+    expect(screen.getByTestId('progress-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('remove-modal')).toBeInTheDocument();
   });
 });
