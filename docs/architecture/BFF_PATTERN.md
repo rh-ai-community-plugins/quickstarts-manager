@@ -142,6 +142,7 @@ bff/
 **k8sApiClient** -- Authenticated Kubernetes API client. Supports Route discovery (listing OpenShift Routes in a namespace) and SelfSubjectAccessReview. In-cluster and out-of-cluster auto-detection. Request timeout (30s) and response body size limit (10MB).
 
 **lifecycleService** -- Orchestrates quickstart lifecycle operations:
+
 - **Install**: resolve metadata → check for existing release (one-per-namespace) → RBAC pre-check → `helm install` → discover Routes
 - **Upgrade**: resolve metadata → `helm upgrade` → discover Routes
 - **Remove**: `helm uninstall`
