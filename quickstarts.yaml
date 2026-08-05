@@ -5,3 +5,4 @@ quickstarts:
     repository: https://github.com/rh-ai-quickstart/lemonade-stand-assistant
   - name: caisat
     repository: https://github.com/rh-ai-quickstart/CAIsat
+    branch: feat/quickstart-manager
