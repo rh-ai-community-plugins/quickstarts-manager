@@ -4,6 +4,9 @@ import * as k8sApiClient from '../src/services/k8sApiClient';
 import * as registryClient from '../src/services/registryClient';
 import * as metadataClient from '../src/services/quickstartMetadataClient';
 import * as rbacChecker from '../src/services/rbacChecker';
+import * as settingsService from '../src/services/settingsService';
+import * as proxyAgent from '../src/utils/proxyAgent';
+import * as githubArchive from '../src/utils/githubArchive';
 import { QuickstartMetadata } from '../src/types/catalog';
 import { LifecycleStep } from '../src/types/lifecycle';
 
@@ -21,6 +24,9 @@ jest.mock('../src/services/k8sApiClient');
 jest.mock('../src/services/registryClient');
 jest.mock('../src/services/quickstartMetadataClient');
 jest.mock('../src/services/rbacChecker');
+jest.mock('../src/services/settingsService');
+jest.mock('../src/utils/proxyAgent');
+jest.mock('../src/utils/githubArchive');
 
 const mockedHelmInstall = jest.mocked(helmService.helmInstall);
 const mockedHelmUpgrade = jest.mocked(helmService.helmUpgrade);
@@ -30,6 +36,10 @@ const mockedDiscoverRoutes = jest.mocked(k8sApiClient.discoverRoutes);
 const mockedGetRegistryQuickstarts = jest.mocked(registryClient.getRegistryQuickstarts);
 const mockedGetQuickstartMetadata = jest.mocked(metadataClient.getQuickstartMetadata);
 const mockedCheckRbacPermissions = jest.mocked(rbacChecker.checkRbacPermissions);
+const mockedGetSettings = jest.mocked(settingsService.getSettings);
+const mockedGetProxyAgent = jest.mocked(proxyAgent.getProxyAgent);
+const mockedDownloadRepoChart = jest.mocked(githubArchive.downloadRepoChart);
+const mockedCleanupExtractedChart = jest.mocked(githubArchive.cleanupExtractedChart);
 
 const MOCK_METADATA: QuickstartMetadata = {
   name: 'lemonade',
@@ -52,6 +62,14 @@ const MOCK_METADATA: QuickstartMetadata = {
   tags: ['chatbot', 'llm'],
 };
 
+const MOCK_REPO_METADATA: QuickstartMetadata = {
+  ...MOCK_METADATA,
+  deployment: {
+    ...MOCK_METADATA.deployment,
+    chart: { type: 'repo' as const, path: 'chart/' },
+  },
+};
+
 function setupRegistryMock(name = 'lemonade') {
   mockedGetRegistryQuickstarts.mockResolvedValue([
     { name, repository: `https://github.com/rh-ai-quickstart/${name}` },
@@ -69,6 +87,10 @@ describe('lifecycleService', () => {
     mockedHelmUpgrade.mockResolvedValue('{}');
     mockedHelmUninstall.mockResolvedValue('released');
     mockedDiscoverRoutes.mockResolvedValue([]);
+    mockedGetSettings.mockReturnValue({ githubToken: null, proxyUrl: null, source: 'default' });
+    mockedGetProxyAgent.mockReturnValue(undefined);
+    mockedDownloadRepoChart.mockResolvedValue({ chartPath: '/tmp/qs-chart-test/extracted/org-repo-abc123/chart', tmpDir: '/tmp/qs-chart-test' });
+    mockedCleanupExtractedChart.mockImplementation(() => {});
   });
 
   describe('installQuickstart', () => {
@@ -187,20 +209,90 @@ describe('lifecycleService', () => {
       expect(result.message).toContain('Metadata unavailable');
     });
 
-    it('fails for unsupported chart type (repo)', async () => {
-      const repoChartMetadata = {
-        ...MOCK_METADATA,
-        deployment: {
-          ...MOCK_METADATA.deployment,
-          chart: { type: 'repo' as const, path: 'chart/' },
-        },
-      };
-      mockedGetQuickstartMetadata.mockResolvedValue(repoChartMetadata);
+    it('installs with repo chart type', async () => {
+      mockedGetQuickstartMetadata.mockResolvedValue(MOCK_REPO_METADATA);
+
+      const result = await installQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(true);
+      expect(mockedDownloadRepoChart).toHaveBeenCalledWith(
+        'https://github.com/rh-ai-quickstart/lemonade',
+        'chart/',
+        'main',
+        expect.objectContaining({ headers: {} }),
+      );
+      expect(mockedHelmInstall).toHaveBeenCalledWith(
+        'lemonade',
+        '/tmp/qs-chart-test/extracted/org-repo-abc123/chart',
+        'test-ns',
+        'token',
+        { 'app.debug': false },
+        undefined,
+      );
+      expect(mockedCleanupExtractedChart).toHaveBeenCalledWith('/tmp/qs-chart-test');
+    });
+
+    it('cleans up repo chart temp dir on helm failure', async () => {
+      mockedGetQuickstartMetadata.mockResolvedValue(MOCK_REPO_METADATA);
+      mockedHelmInstall.mockRejectedValue(new Error('helm install failed'));
 
       const result = await installQuickstart('lemonade', 'test-ns', 'token');
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('not yet supported');
+      expect(mockedCleanupExtractedChart).toHaveBeenCalledWith('/tmp/qs-chart-test');
+    });
+
+    it('passes github token to repo chart download', async () => {
+      mockedGetQuickstartMetadata.mockResolvedValue(MOCK_REPO_METADATA);
+      mockedGetSettings.mockReturnValue({ githubToken: 'gh-token-123', proxyUrl: null, source: 'secret' });
+
+      await installQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(mockedDownloadRepoChart).toHaveBeenCalledWith(
+        expect.any(String),
+        'chart/',
+        'main',
+        expect.objectContaining({ headers: { Authorization: 'Bearer gh-token-123' } }),
+      );
+    });
+
+    it('uses chart.branch over registry.branch for repo charts', async () => {
+      const metadataWithBranch = {
+        ...MOCK_REPO_METADATA,
+        deployment: {
+          ...MOCK_REPO_METADATA.deployment,
+          chart: { type: 'repo' as const, path: 'chart/', branch: 'release-v2' },
+        },
+      };
+      mockedGetQuickstartMetadata.mockResolvedValue(metadataWithBranch);
+      mockedGetRegistryQuickstarts.mockResolvedValue([
+        { name: 'lemonade', repository: 'https://github.com/rh-ai-quickstart/lemonade', branch: 'dev' },
+      ]);
+
+      await installQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(mockedDownloadRepoChart).toHaveBeenCalledWith(
+        expect.any(String),
+        'chart/',
+        'release-v2',
+        expect.any(Object),
+      );
+    });
+
+    it('falls back to registry.branch for repo charts without chart.branch', async () => {
+      mockedGetQuickstartMetadata.mockResolvedValue(MOCK_REPO_METADATA);
+      mockedGetRegistryQuickstarts.mockResolvedValue([
+        { name: 'lemonade', repository: 'https://github.com/rh-ai-quickstart/lemonade', branch: 'dev' },
+      ]);
+
+      await installQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(mockedDownloadRepoChart).toHaveBeenCalledWith(
+        expect.any(String),
+        'chart/',
+        'dev',
+        expect.any(Object),
+      );
     });
 
     it('rejects invalid OCI chart reference format', async () => {
@@ -358,6 +450,34 @@ describe('lifecycleService', () => {
 
       expect(result.success).toBe(true);
       expect(mockedCheckRbacPermissions).not.toHaveBeenCalled();
+    });
+
+    it('upgrades with repo chart type', async () => {
+      mockedGetQuickstartMetadata.mockResolvedValue(MOCK_REPO_METADATA);
+
+      const result = await upgradeQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(true);
+      expect(mockedDownloadRepoChart).toHaveBeenCalled();
+      expect(mockedHelmUpgrade).toHaveBeenCalledWith(
+        'lemonade',
+        '/tmp/qs-chart-test/extracted/org-repo-abc123/chart',
+        'test-ns',
+        'token',
+        { 'app.debug': false },
+        undefined,
+      );
+      expect(mockedCleanupExtractedChart).toHaveBeenCalledWith('/tmp/qs-chart-test');
+    });
+
+    it('cleans up repo chart temp dir on upgrade failure', async () => {
+      mockedGetQuickstartMetadata.mockResolvedValue(MOCK_REPO_METADATA);
+      mockedHelmUpgrade.mockRejectedValue(new Error('upgrade failed'));
+
+      const result = await upgradeQuickstart('lemonade', 'test-ns', 'token');
+
+      expect(result.success).toBe(false);
+      expect(mockedCleanupExtractedChart).toHaveBeenCalledWith('/tmp/qs-chart-test');
     });
   });
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   ModalBody,
@@ -8,8 +8,35 @@ import {
   Alert,
   ProgressStep,
   ProgressStepper,
+  Spinner,
 } from '@patternfly/react-core';
 import type { LifecycleStep, LifecycleOperation } from '~/app/types/lifecycle';
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
+function useElapsedTime(runningStepId: string | undefined): number {
+  const [elapsed, setElapsed] = useState(0);
+  const prevStepId = useRef(runningStepId);
+
+  useEffect(() => {
+    if (runningStepId !== prevStepId.current) {
+      setElapsed(0);
+      prevStepId.current = runningStepId;
+    }
+
+    if (!runningStepId) return;
+
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(interval);
+  }, [runningStepId]);
+
+  return elapsed;
+}
 
 interface LifecycleProgressModalProps {
   isOpen: boolean;
@@ -64,6 +91,9 @@ const LifecycleProgressModal: React.FC<LifecycleProgressModalProps> = ({
       ? operationSuccessTitle[operation]
       : `${operationTitle[operation]} failed`;
 
+  const runningStepId = steps.find((s) => s.status === 'running')?.id;
+  const elapsed = useElapsedTime(runningStepId);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -78,19 +108,24 @@ const LifecycleProgressModal: React.FC<LifecycleProgressModalProps> = ({
         </div>
         {steps.length > 0 && (
           <ProgressStepper isVertical>
-            {steps.map((step) => (
-              <ProgressStep
-                key={step.id}
-                variant={stepVariant(step.status)}
-                isCurrent={step.status === 'running'}
-                id={step.id}
-                titleId={`${step.id}-title`}
-                aria-label={step.label}
-                description={step.error}
-              >
-                {step.label}
-              </ProgressStep>
-            ))}
+            {steps.map((step) => {
+              const isRunning = step.status === 'running';
+              const description = step.error ?? (isRunning ? formatElapsed(elapsed) : undefined);
+              return (
+                <ProgressStep
+                  key={step.id}
+                  variant={stepVariant(step.status)}
+                  isCurrent={isRunning}
+                  id={step.id}
+                  titleId={`${step.id}-title`}
+                  aria-label={step.label}
+                  description={description}
+                  icon={isRunning ? <Spinner size="md" /> : undefined}
+                >
+                  {step.label}
+                </ProgressStep>
+              );
+            })}
           </ProgressStepper>
         )}
         {success === false && message && (

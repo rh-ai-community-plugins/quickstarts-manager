@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LifecycleProgressModal from '../LifecycleProgressModal';
 
@@ -18,6 +18,11 @@ const defaultProps = {
 describe('LifecycleProgressModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('should return null when operation is null', () => {
@@ -120,7 +125,7 @@ describe('LifecycleProgressModal', () => {
   });
 
   it('should call onClose when Done is clicked after success', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     render(
       <LifecycleProgressModal {...defaultProps} success={true} message="OK" />,
     );
@@ -148,5 +153,59 @@ describe('LifecycleProgressModal', () => {
       />,
     );
     expect(screen.getByText('Timed out after 330s')).toBeInTheDocument();
+  });
+
+  it('should show a spinner on the running step', () => {
+    render(<LifecycleProgressModal {...defaultProps} />);
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('should show elapsed time on the running step', () => {
+    render(<LifecycleProgressModal {...defaultProps} />);
+    expect(screen.getByText('0s')).toBeInTheDocument();
+
+    act(() => jest.advanceTimersByTime(5000));
+    expect(screen.getByText('5s')).toBeInTheDocument();
+  });
+
+  it('should format elapsed time with minutes', () => {
+    render(<LifecycleProgressModal {...defaultProps} />);
+
+    act(() => jest.advanceTimersByTime(75_000));
+    expect(screen.getByText('1m 15s')).toBeInTheDocument();
+  });
+
+  it('should reset elapsed time when running step changes', () => {
+    const { rerender } = render(<LifecycleProgressModal {...defaultProps} />);
+
+    act(() => jest.advanceTimersByTime(10_000));
+    expect(screen.getByText('10s')).toBeInTheDocument();
+
+    const newSteps = [
+      { id: 'resolve', label: 'Resolving quickstart', status: 'completed' as const },
+      { id: 'helm-install', label: 'Running helm install', status: 'completed' as const },
+      { id: 'discover-routes', label: 'Discovering routes', status: 'running' as const },
+    ];
+    rerender(<LifecycleProgressModal {...defaultProps} steps={newSteps} />);
+
+    expect(screen.getByText('0s')).toBeInTheDocument();
+  });
+
+  it('should not show spinner or elapsed time on completed steps', () => {
+    const completedSteps = [
+      { id: 'resolve', label: 'Resolving quickstart', status: 'completed' as const },
+      { id: 'helm-install', label: 'Running helm install', status: 'completed' as const },
+    ];
+
+    render(
+      <LifecycleProgressModal
+        {...defaultProps}
+        steps={completedSteps}
+        success={true}
+        message="Done"
+      />,
+    );
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.queryByText('0s')).not.toBeInTheDocument();
   });
 });

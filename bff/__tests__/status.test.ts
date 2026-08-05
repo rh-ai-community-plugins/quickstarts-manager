@@ -63,40 +63,48 @@ describe('status route', () => {
     expect(JSON.parse(res.body).error).toContain('Invalid namespace');
   });
 
-  it('returns 403 for kube-system namespace', async () => {
+  it('returns 400 for kube-system namespace', async () => {
     const res = await request(port, '/api/quickstarts/status?namespace=kube-system', {
       Authorization: 'Bearer test-token',
     });
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(400);
     expect(JSON.parse(res.body).error).toContain('protected');
   });
 
-  it('returns 403 for openshift-* namespaces', async () => {
+  it('returns 400 for openshift-* namespaces', async () => {
     const res = await request(port, '/api/quickstarts/status?namespace=openshift-operators', {
       Authorization: 'Bearer test-token',
     });
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(400);
   });
 
-  it('returns 403 for redhat-ods-* namespaces', async () => {
+  it('returns 400 for redhat-ods-* namespaces', async () => {
     const res = await request(port, '/api/quickstarts/status?namespace=redhat-ods-monitoring', {
       Authorization: 'Bearer test-token',
     });
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(400);
   });
 
-  it('returns 403 for default namespace', async () => {
+  it('returns 400 for default namespace', async () => {
     const res = await request(port, '/api/quickstarts/status?namespace=default', {
       Authorization: 'Bearer test-token',
     });
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(400);
   });
 
-  it('returns 403 for opendatahub namespace', async () => {
+  it('returns 400 for opendatahub namespace', async () => {
     const res = await request(port, '/api/quickstarts/status?namespace=opendatahub', {
       Authorization: 'Bearer test-token',
     });
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('returns 400 for purely numeric namespace', async () => {
+    const res = await request(port, '/api/quickstarts/status?namespace=1111', {
+      Authorization: 'Bearer test-token',
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toContain('purely numeric');
   });
 
   it('returns 401 when Authorization header is missing', async () => {

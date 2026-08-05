@@ -3,6 +3,9 @@ import { discoverRoutes } from './k8sApiClient';
 import { getRegistryQuickstarts } from './registryClient';
 import { getQuickstartMetadata } from './quickstartMetadataClient';
 import { checkRbacPermissions } from './rbacChecker';
+import { getSettings } from './settingsService';
+import { getProxyAgent } from '../utils/proxyAgent';
+import { downloadRepoChart, cleanupExtractedChart } from '../utils/githubArchive';
 import { QuickstartMetadata, RegistryQuickstart } from '../types/catalog';
 import { LifecycleStep, LifecycleResponse, LifecycleProgressCallback } from '../types/lifecycle';
 
@@ -52,18 +55,51 @@ async function resolveQuickstart(name: string): Promise<{
 
 const OCI_REF_PATTERN = /^oci:\/\/[a-zA-Z0-9._-]+(\/[a-zA-Z0-9._-]+)+$/;
 
-function resolveChartRef(metadata: QuickstartMetadata): string {
+interface ResolvedChartOci {
+  type: 'oci';
+  ref: string;
+  version: string;
+}
+
+interface ResolvedChartRepo {
+  type: 'repo';
+  ref: string;
+  version?: undefined;
+  tmpDir: string;
+}
+
+type ResolvedChart = ResolvedChartOci | ResolvedChartRepo;
+
+async function resolveChart(
+  metadata: QuickstartMetadata,
+  registry: RegistryQuickstart,
+): Promise<ResolvedChart> {
   const chart = metadata.deployment.chart;
+
   if (chart.type === 'oci') {
     if (!OCI_REF_PATTERN.test(chart.ref)) {
       throw new Error(`Invalid OCI chart reference format: "${chart.ref}"`);
     }
-    return chart.ref;
+    return { type: 'oci', ref: chart.ref, version: metadata.version };
   }
-  throw new Error(
-    `Chart type "${chart.type}" (in-repo) is not yet supported. ` +
-    'Only OCI chart references are currently implemented.',
+
+  const branch = chart.branch ?? registry.branch ?? 'main';
+
+  const { githubToken } = getSettings();
+  const headers: Record<string, string> = {};
+  if (githubToken) {
+    headers['Authorization'] = `Bearer ${githubToken}`;
+  }
+  const agent = getProxyAgent();
+
+  const extracted = await downloadRepoChart(
+    registry.repository,
+    chart.path,
+    branch,
+    { headers, agent: agent ?? undefined },
   );
+
+  return { type: 'repo', ref: extracted.chartPath, tmpDir: extracted.tmpDir };
 }
 
 export async function installQuickstart(
@@ -83,11 +119,13 @@ export async function installQuickstart(
   onProgress?.(steps);
 
   let metadata: QuickstartMetadata | undefined;
+  let registry: RegistryQuickstart | undefined;
   try {
     markRunning(steps[0]);
     onProgress?.(steps);
-    const resolved = await resolveQuickstart(quickstartName);
-    metadata = resolved.metadata;
+    const quickstart = await resolveQuickstart(quickstartName);
+    metadata = quickstart.metadata;
+    registry = quickstart.registry;
     markCompleted(steps[0]);
     onProgress?.(steps);
 
@@ -120,10 +158,16 @@ export async function installQuickstart(
 
     markRunning(steps[3]);
     onProgress?.(steps);
-    const chartRef = resolveChartRef(metadata);
-    const mergedValues = { ...metadata.deployment.defaultValues, ...values };
-    const helmValues = Object.keys(mergedValues).length > 0 ? mergedValues : undefined;
-    await helmInstall(quickstartName, chartRef, namespace, token, helmValues, metadata.version);
+    const resolved = await resolveChart(metadata, registry);
+    try {
+      const mergedValues = { ...metadata.deployment.defaultValues, ...values };
+      const helmValues = Object.keys(mergedValues).length > 0 ? mergedValues : undefined;
+      await helmInstall(quickstartName, resolved.ref, namespace, token, helmValues, resolved.version);
+    } finally {
+      if (resolved.type === 'repo') {
+        cleanupExtractedChart(resolved.tmpDir);
+      }
+    }
     markCompleted(steps[3]);
     onProgress?.(steps);
 
@@ -172,7 +216,7 @@ export async function upgradeQuickstart(
   try {
     markRunning(steps[0]);
     onProgress?.(steps);
-    const { metadata } = await resolveQuickstart(quickstartName);
+    const { metadata, registry } = await resolveQuickstart(quickstartName);
     markCompleted(steps[0]);
     onProgress?.(steps);
 
@@ -203,10 +247,16 @@ export async function upgradeQuickstart(
 
     markRunning(steps[3]);
     onProgress?.(steps);
-    const chartRef = resolveChartRef(metadata);
-    const mergedValues = { ...metadata.deployment.defaultValues, ...values };
-    const helmValues = Object.keys(mergedValues).length > 0 ? mergedValues : undefined;
-    await helmUpgrade(quickstartName, chartRef, namespace, token, helmValues, metadata.version);
+    const resolved = await resolveChart(metadata, registry);
+    try {
+      const mergedValues = { ...metadata.deployment.defaultValues, ...values };
+      const helmValues = Object.keys(mergedValues).length > 0 ? mergedValues : undefined;
+      await helmUpgrade(quickstartName, resolved.ref, namespace, token, helmValues, resolved.version);
+    } finally {
+      if (resolved.type === 'repo') {
+        cleanupExtractedChart(resolved.tmpDir);
+      }
+    }
     markCompleted(steps[3]);
     onProgress?.(steps);
 

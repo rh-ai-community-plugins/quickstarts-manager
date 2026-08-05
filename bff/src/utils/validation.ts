@@ -32,6 +32,9 @@ export function validateNamespace(namespace: unknown): string | null {
   if (typeof namespace !== 'string' || !K8S_NAMESPACE_PATTERN.test(namespace)) {
     return 'Invalid namespace: must be lowercase alphanumeric with hyphens, 2-64 characters';
   }
+  if (/^\d+$/.test(namespace)) {
+    return 'Invalid namespace: purely numeric names cause Helm template type errors. Use a name that includes letters (e.g. "ns-1111" instead of "1111")';
+  }
   if (isProtectedNamespace(namespace)) {
     return `Cannot operate on protected namespace "${namespace}"`;
   }
