@@ -1,0 +1,93 @@
+# Default values for quickstarts-manager.
+# This is a YAML-formatted file.
+
+# -- Target namespace for all namespaced resources.
+# Override with --set namespace=<ns> to deploy elsewhere.
+namespace: cp-quickstarts-manager
+
+image:
+  repository: quay.io/rh-ai-community-plugins/quickstarts-manager
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Overrides .Chart.Name so deployed resources use the plugin name, not the
+# chart name (which has a -chart suffix to avoid OCI registry collisions).
+nameOverride: "quickstarts-manager"
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /quickstarts-manager
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+securityContext:
+  runAsNonRoot: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# BFF (Backend For Frontend) service
+bff:
+  enabled: true
+  image:
+    repository: quay.io/rh-ai-community-plugins/quickstarts-manager-bff
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  # RBAC for quickstart lifecycle operations (install, upgrade, remove)
+  rbac:
+    create: true
+  # Quickstart registry configuration
+  registryRepo: "https://github.com/rh-ai-community-plugins/quickstarts-manager"
+  registryBranch: "main"
+  registryFile: "quickstarts.yaml"
+  # Cache TTL in seconds for catalog data
+  cacheTtl: 300
+  # Optional: GitHub personal access token for higher API rate limits
+  githubToken: ""
+  # Optional: HTTP/HTTPS proxy URL for outbound GitHub requests
+  proxyUrl: ""

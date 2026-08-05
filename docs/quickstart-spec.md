@@ -1,0 +1,108 @@
+# Quickstart Metadata Specification
+
+This document defines the `quickstart.yaml` file format that AI Quickstart repositories must include to be featured in the Quickstarts Manager plugin.
+
+## Overview
+
+The `quickstart.yaml` file lives at the root of a quickstart repository. It provides the Quickstarts Manager plugin with everything it needs to display, validate, install, and manage the quickstart.
+
+See [`quickstart.yaml.template`](/quickstart.yaml.template) for an annotated example.
+
+## Fields
+
+### Identity
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `name` | Yes | string | Machine-readable name. Lowercase, hyphens only, max 63 chars. Must match the entry in the curated `quickstarts.yaml` registry. |
+| `displayName` | Yes | string | Human-readable name shown in the catalog UI. |
+| `description` | Yes | string | Short description (1-2 sentences) shown on catalog cards. |
+| `version` | Yes | string | Semver version of the quickstart. Used to detect available upgrades. |
+| `icon` | No | string (URL) | URL to an icon image (SVG or PNG). Falls back to a default icon. |
+
+### Maintainer
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `maintainer.name` | Yes | string | Display name of the maintainer or team. |
+| `maintainer.github` | No | string | GitHub username or organization. |
+
+### Source
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `repository` | Yes | string (URL) | URL to the quickstart's GitHub repository. |
+
+### Deployment
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `deployment.scope` | Yes | `project` \| `cluster` | `project` = namespace-scoped only. `cluster` = requires cluster-scoped resources (CRDs, ClusterRoles). |
+| `deployment.chart.type` | Yes | `oci` \| `repo` | How to locate the Helm chart. |
+| `deployment.chart.ref` | If type=oci | string | OCI registry reference (e.g., `oci://quay.io/org/chart`). |
+| `deployment.chart.path` | If type=repo | string | Path to the chart directory within the repository (e.g., `chart/`, `deploy/helm/`). |
+| `deployment.chart.branch` | No | string | Branch to use for in-repo charts. Defaults to `main`. |
+| `deployment.defaultValues` | No | object | Default Helm values applied on install. Users may override in the install dialog. |
+
+### RBAC
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `rbac.requiredPermissions` | No | array | List of permissions the user must have in the target namespace. Each entry has `apiGroup`, `resource`, and `verbs`. The plugin checks these via SelfSubjectAccessReview before allowing install. |
+
+### Prerequisites
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `prerequisites` | No | array of strings | Free-text requirements shown in the catalog detail panel (GPU, storage, external services). These are informational — the plugin does not validate them automatically. |
+
+### Tags
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `tags` | No | array of strings | Lowercase tags for catalog filtering (e.g., `chatbot`, `rag`, `llm`). |
+
+## Helm Chart Modes
+
+Quickstart repositories vary in how they organize their Helm charts. The `deployment.chart` section supports two modes:
+
+### OCI Registry (recommended)
+
+The chart is published to an OCI-compatible registry. The plugin runs `helm install <name> <ref> --version <version>`.
+
+```yaml
+deployment:
+  chart:
+    type: oci
+    ref: oci://quay.io/rh-ai-quickstart/my-quickstart-chart
+```
+
+### In-Repo Path
+
+The chart lives inside the quickstart's Git repository. The plugin clones the repo (or fetches the chart archive) and installs from the local path.
+
+```yaml
+deployment:
+  chart:
+    type: repo
+    path: chart/
+    branch: main  # optional, defaults to main
+```
+
+OCI is preferred because it avoids Git clones at install time and supports proper versioning. In-repo is provided for quickstarts that haven't published to a registry yet.
+
+## Version Detection
+
+The plugin compares the `version` field in the quickstart's `quickstart.yaml` (fetched from the source repo, bypassing cache on refresh) against the version of the installed Helm release. If they differ, an upgrade is offered in the Status view.
+
+## Adding Your Quickstart to the Registry
+
+1. Add a `quickstart.yaml` to the root of your repository following this spec.
+2. Submit a pull request to the [quickstarts-manager registry](https://github.com/rh-ai-community-plugins/quickstarts-manager) adding your quickstart to `quickstarts.yaml`:
+
+```yaml
+quickstarts:
+  # ... existing entries ...
+  - name: your-quickstart-name
+    repository: https://github.com/rh-ai-quickstart/your-quickstart
+```
