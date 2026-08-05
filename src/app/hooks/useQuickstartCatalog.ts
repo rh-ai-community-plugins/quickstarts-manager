@@ -24,8 +24,8 @@ export function useQuickstartCatalog() {
         if (!res.ok) throw new Error(`Failed to fetch catalog: ${res.status}`);
         return res.json();
       })
-      .then((data: CatalogQuickstart[]) => {
-        setQuickstarts(data);
+      .then((data: { quickstarts: CatalogQuickstart[] }) => {
+        setQuickstarts(data.quickstarts);
         setLoading(false);
       })
       .catch((e) => {

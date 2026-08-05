@@ -29,7 +29,7 @@ function isCacheValid(entry: CacheEntry): boolean {
 }
 
 async function fetchQuickstartYaml(quickstart: RegistryQuickstart): Promise<QuickstartMetadata | null> {
-  const rawUrl = buildGitHubRawUrl(quickstart.repository, 'main', 'quickstart.yaml');
+  const rawUrl = buildGitHubRawUrl(quickstart.repository, quickstart.branch ?? 'main', 'quickstart.yaml');
   if (!rawUrl) {
     console.warn(`Cannot build raw URL for quickstart ${quickstart.name}: ${quickstart.repository}`);
     return null;

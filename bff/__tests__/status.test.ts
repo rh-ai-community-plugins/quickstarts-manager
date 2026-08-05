@@ -63,13 +63,6 @@ describe('status route', () => {
     expect(JSON.parse(res.body).error).toContain('Invalid namespace');
   });
 
-  it('returns 400 for single-character namespace', async () => {
-    const res = await request(port, '/api/quickstarts/status?namespace=a', {
-      Authorization: 'Bearer test-token',
-    });
-    expect(res.statusCode).toBe(400);
-  });
-
   it('returns 403 for kube-system namespace', async () => {
     const res = await request(port, '/api/quickstarts/status?namespace=kube-system', {
       Authorization: 'Bearer test-token',

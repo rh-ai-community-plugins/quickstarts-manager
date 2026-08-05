@@ -1,7 +1,7 @@
 import { Request } from 'express';
 
 export const QUICKSTART_NAME_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
-export const K8S_NAMESPACE_PATTERN = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
+export const K8S_NAMESPACE_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
 const PROTECTED_NAMESPACE_PATTERNS = [
   /^kube-/,
