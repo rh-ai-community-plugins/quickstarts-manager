@@ -27,6 +27,10 @@ version: "1.0.0"
 # Displayed in catalog cards. Falls back to a default icon if omitted.
 icon: https://raw.githubusercontent.com/rh-ai-quickstart/my-quickstart/main/docs/images/icon.svg
 
+# [OPTIONAL] URL to a preview image (PNG or JPG).
+# Displayed in the catalog detail modal. Omit if not available.
+image: https://raw.githubusercontent.com/rh-ai-quickstart/my-quickstart/main/docs/images/preview.png
+
 # ──────────────────────────────────────────────────────────────────────
 # Maintainer
 # ──────────────────────────────────────────────────────────────────────

@@ -40,6 +40,7 @@ export interface CatalogQuickstart {
   description?: string;
   version?: string;
   icon?: string;
+  image?: string;
   maintainer?: QuickstartMaintainer;
   deployment?: QuickstartDeployment;
   rbac?: QuickstartRbac;

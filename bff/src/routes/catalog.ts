@@ -26,6 +26,7 @@ function buildCatalogQuickstart(
     description: metadata.description,
     version: metadata.version,
     icon: metadata.icon,
+    image: metadata.image,
     maintainer: metadata.maintainer,
     deployment: metadata.deployment,
     rbac: metadata.rbac,

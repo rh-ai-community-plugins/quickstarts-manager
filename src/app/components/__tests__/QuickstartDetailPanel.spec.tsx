@@ -1,10 +1,5 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
-} from '@patternfly/react-core';
 import { QuickstartDetailPanel } from '../QuickstartDetailPanel';
 import { CatalogQuickstart } from '~/app/types/catalog';
 
@@ -55,21 +50,14 @@ const renderPanel = (
   quickstart: CatalogQuickstart = fullQuickstart,
   onInstall?: (q: CatalogQuickstart) => void,
 ) => {
-  const panel = (
+  return render(
     <QuickstartDetailPanel
       quickstart={quickstart}
       namespace="my-namespace"
+      isOpen
       onClose={jest.fn()}
       onInstall={onInstall}
-    />
-  );
-
-  return render(
-    <Drawer isExpanded>
-      <DrawerContent panelContent={panel}>
-        <DrawerContentBody>Main content</DrawerContentBody>
-      </DrawerContent>
-    </Drawer>,
+    />,
   );
 };
 
@@ -134,13 +122,13 @@ describe('QuickstartDetailPanel', () => {
     expect(screen.getByText('At least 8Gi memory')).toBeInTheDocument();
   });
 
-  it('should render required permissions', () => {
+  it('should render required permissions with display names and verbs', () => {
     renderPanel();
     expect(screen.getByText('Required permissions')).toBeInTheDocument();
-    expect(
-      screen.getByText('deployments (apps): create, delete'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('services: create')).toBeInTheDocument();
+    expect(screen.getByText('Deployments (apps):')).toBeInTheDocument();
+    expect(screen.getByText('Services:')).toBeInTheDocument();
+    expect(screen.getAllByText('create')).toHaveLength(2);
+    expect(screen.getByText('delete')).toBeInTheDocument();
   });
 
   it('should render tags', () => {
@@ -198,35 +186,42 @@ describe('QuickstartDetailPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('should show "Checking permissions" while RBAC is loading', () => {
+  it('should show spinners per verb while RBAC is loading', () => {
     mockAccessReview.loading = true;
     renderPanel(fullQuickstart, jest.fn());
 
+    expect(screen.getAllByLabelText('Checking create')).toHaveLength(2);
+    expect(screen.getByLabelText('Checking delete')).toBeInTheDocument();
     expect(screen.getByText('Checking permissions…')).toBeInTheDocument();
   });
 
-  it('should disable install button when RBAC check denies permissions', () => {
+  it('should show denied icons and disable install when RBAC denies permissions', () => {
     mockAccessReview.results = [
       { verb: 'create', resource: 'deployments', group: 'apps', allowed: false },
+      { verb: 'delete', resource: 'deployments', group: 'apps', allowed: true },
       { verb: 'create', resource: 'services', group: '', allowed: true },
     ];
     renderPanel(fullQuickstart, jest.fn());
 
-    expect(screen.getByText('Insufficient permissions')).toBeInTheDocument();
+    expect(screen.getByLabelText('create denied')).toBeInTheDocument();
+    expect(screen.getByLabelText('delete allowed')).toBeInTheDocument();
+    expect(screen.getByLabelText('create allowed')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Install to my-namespace' }),
     ).toBeDisabled();
   });
 
-  it('should enable install button when all RBAC checks pass', () => {
+  it('should show allowed icons and enable install when all RBAC checks pass', () => {
     mockAccessReview.results = [
       { verb: 'create', resource: 'deployments', group: 'apps', allowed: true },
+      { verb: 'delete', resource: 'deployments', group: 'apps', allowed: true },
       { verb: 'create', resource: 'services', group: '', allowed: true },
     ];
     const onInstall = jest.fn();
     renderPanel(fullQuickstart, onInstall);
 
-    expect(screen.queryByText('Insufficient permissions')).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText(/allowed/)).toHaveLength(3);
+    expect(screen.queryByLabelText(/denied/)).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Install to my-namespace' }),
     ).toBeEnabled();

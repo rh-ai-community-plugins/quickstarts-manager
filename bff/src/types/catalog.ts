@@ -52,6 +52,7 @@ export interface QuickstartMetadata {
   description: string;
   version: string;
   icon?: string;
+  image?: string;
   maintainer: QuickstartMaintainer;
   repository: string;
   deployment: QuickstartDeployment;
@@ -70,6 +71,7 @@ export interface CatalogQuickstart {
   description?: string;
   version?: string;
   icon?: string;
+  image?: string;
   maintainer?: QuickstartMaintainer;
   deployment?: QuickstartDeployment;
   rbac?: QuickstartRbac;

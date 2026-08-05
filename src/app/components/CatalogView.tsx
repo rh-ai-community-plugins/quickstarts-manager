@@ -6,9 +6,6 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  Drawer,
-  DrawerContent,
-  DrawerContentBody,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
@@ -230,21 +227,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   );
 
   return (
-    <Drawer isExpanded={selectedQuickstart !== null}>
-      <DrawerContent
-        panelContent={
-          selectedQuickstart ? (
-            <QuickstartDetailPanel
-              quickstart={selectedQuickstart}
-              namespace={namespace}
-              onClose={() => setSelectedQuickstart(null)}
-              onInstall={onInstall}
-            />
-          ) : undefined
-        }
-      >
-        <DrawerContentBody>{catalogContent}</DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+    <>
+      {catalogContent}
+      {selectedQuickstart && (
+        <QuickstartDetailPanel
+          quickstart={selectedQuickstart}
+          namespace={namespace}
+          isOpen
+          onClose={() => setSelectedQuickstart(null)}
+          onInstall={onInstall}
+        />
+      )}
+    </>
   );
 };

@@ -19,6 +19,7 @@ See [`quickstart.yaml.template`](/quickstart.yaml.template) for an annotated exa
 | `description` | Yes | string | Short description (1-2 sentences) shown on catalog cards. |
 | `version` | Yes | string | Semver version of the quickstart. Used to detect available upgrades. |
 | `icon` | No | string (URL) | URL to an icon image (SVG or PNG). Falls back to a default icon. |
+| `image` | No | string (URL) | URL to a preview image (PNG or JPG) shown in the catalog detail modal. |
 
 ### Maintainer
 

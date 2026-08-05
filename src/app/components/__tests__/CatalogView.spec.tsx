@@ -6,19 +6,22 @@ import { CatalogQuickstart } from '~/app/types/catalog';
 jest.mock('../QuickstartDetailPanel', () => ({
   QuickstartDetailPanel: ({
     quickstart,
+    isOpen,
     onClose,
   }: {
     quickstart: CatalogQuickstart;
     namespace: string;
+    isOpen: boolean;
     onClose: () => void;
-  }) => (
-    <div data-testid="detail-panel">
-      <span data-testid="detail-name">{quickstart.displayName}</span>
-      <button data-testid="detail-close" onClick={onClose}>
-        Close
-      </button>
-    </div>
-  ),
+  }) =>
+    isOpen ? (
+      <div data-testid="detail-panel">
+        <span data-testid="detail-name">{quickstart.displayName}</span>
+        <button data-testid="detail-close" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    ) : null,
 }));
 
 const mockQuickstarts: CatalogQuickstart[] = [
