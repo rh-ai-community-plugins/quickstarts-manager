@@ -79,6 +79,25 @@ deployment:
 
 On submit, the plugin sends all `configurableValues` field values as a flat dot-path map; the BFF merges them over `defaultValues` before running Helm. The upgrade dialog pre-fills each field from the values actually installed in the release (via `helm get values`), falling back to the field's `default` when a key isn't set. Values are constrained to flat scalars (string/number/boolean, no nested objects or arrays) — see the BFF's Helm value validation for the exact character and count limits.
 
+#### How Helm values are resolved
+
+The plugin never edits a chart's `values.yaml`. It **overrides** chart defaults at install/upgrade time by passing `--set <key>=<value>` to Helm. Three layers combine, in increasing order of precedence:
+
+1. **Chart defaults** — the `values.yaml` inside the Helm chart (OCI chart or the in-repo `chart/` path). Treated as read-only.
+2. **`deployment.defaultValues`** — a base layer of overrides applied silently on every install and upgrade. Never shown in the UI.
+3. **User-edited `configurableValues`** — the fields the user sees and can change in the dialog.
+
+```text
+chart values.yaml  <  deployment.defaultValues  <  user-edited configurableValues
+```
+
+The BFF merges layers 2 and 3 (`{ ...defaultValues, ...userValues }`, so user values win on key collision) and emits the result as `--set` flags, which sit at the top of Helm's own precedence order and therefore override the chart's `values.yaml`.
+
+Two consequences for authors:
+
+- **Only what you declare is editable.** The install dialog shows a **"Show advanced options"** toggle **only when `configurableValues` is present and non-empty**. If you declare none, there is no toggle and users install with chart defaults plus your `defaultValues` — this is intentional (author-curated UX, not full `values.yaml` exposure). To let users change a value, add it to `configurableValues`.
+- **Leaf values only.** `--set` carries dot-path keys and scalar values, so you can override individual leaf values (e.g. `model.name`) but cannot restructure the chart (no nested objects or arrays). An optional field left empty is omitted entirely, so the chart's own default stays in effect rather than being overwritten with `0` or an empty string.
+
 ### RBAC
 
 | Field | Required | Type | Description |
