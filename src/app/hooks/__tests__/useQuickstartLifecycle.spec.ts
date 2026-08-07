@@ -301,6 +301,76 @@ describe('useQuickstartLifecycle', () => {
     expect(result.current.steps).toEqual(progressSteps);
   });
 
+  it('should fetch installed values with getValues', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ values: { replicaCount: 3 } }),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    const values = await result.current.getValues('my-app', 'test-ns');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/quickstarts-manager/api/quickstarts/my-app/values?namespace=test-ns',
+    );
+    expect(values).toEqual({ replicaCount: 3 });
+  });
+
+  it('should return an empty object from getValues when there are no values', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    const values = await result.current.getValues('my-app', 'test-ns');
+    expect(values).toEqual({});
+  });
+
+  it('should throw on a failed getValues request with a JSON error body', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: () => Promise.resolve(JSON.stringify({ error: 'Not found' })),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    await expect(
+      result.current.getValues('my-app', 'test-ns'),
+    ).rejects.toThrow('Not found');
+  });
+
+  it('should throw on a failed getValues request with a plain text body', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('Internal Server Error'),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+
+    await expect(
+      result.current.getValues('my-app', 'test-ns'),
+    ).rejects.toThrow('Internal Server Error');
+  });
+
+  it('should encode special characters in getValues arguments', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ values: {} }),
+    });
+
+    const { result } = renderHook(() => useQuickstartLifecycle());
+    await result.current.getValues('my app', 'test ns');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/quickstarts-manager/api/quickstarts/my%20app/values?namespace=test%20ns',
+    );
+  });
+
   it('should encode special characters in quickstart name', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,

@@ -43,7 +43,41 @@ See [`quickstart.yaml.template`](/quickstart.yaml.template) for an annotated exa
 | `deployment.chart.ref` | If type=oci | string | OCI registry reference (e.g., `oci://quay.io/org/chart`). |
 | `deployment.chart.path` | If type=repo | string | Path to the chart directory within the repository (e.g., `chart/`, `deploy/helm/`). |
 | `deployment.chart.branch` | No | string | Branch to use for in-repo charts. Defaults to `main`. |
-| `deployment.defaultValues` | No | object | Default Helm values applied on install. Users may override in the install dialog. |
+| `deployment.defaultValues` | No | object | Base Helm values silently applied on every install and upgrade. Not shown in the UI; use `configurableValues` for anything the user should be able to see or change. |
+| `deployment.configurableValues` | No | array | User-editable Helm values, rendered as a form behind "Show advanced options" in the install dialog and pre-filled from the live release in the upgrade dialog. See [Configurable values](#configurable-values) below. |
+
+#### Configurable values
+
+`deployment.configurableValues` declares which Helm values a user can see and edit before installing or upgrading. Each entry renders as one form field:
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `key` | Yes | string | Helm dot-path key (e.g. `replicaCount`, `model.name`), sent as `--set <key>=<value>`. |
+| `label` | No | string | Field label shown in the form. Falls back to `key`. |
+| `description` | No | string | Helper text shown below the field. |
+| `type` | Yes | `string` \| `number` \| `boolean` | Determines the input rendered (text/number field, or switch). |
+| `default` | No | string \| number \| boolean | Pre-filled value in the install dialog. |
+| `required` | No | boolean | Whether the field must have a value before install/upgrade proceeds. Defaults to `false`. |
+| `options` | No | array of strings | `string` type only. Renders the field as a dropdown restricted to these values instead of free text. |
+
+```yaml
+deployment:
+  configurableValues:
+    - key: replicaCount
+      label: Replica count
+      description: Backend replicas to run.
+      type: number
+      default: 1
+      required: false
+    - key: model.name
+      label: Model
+      type: string
+      default: llama-3
+      options: [llama-3, mistral-7b]
+  defaultValues: {} # silent base values, merged underneath configurableValues
+```
+
+On submit, the plugin sends all `configurableValues` field values as a flat dot-path map; the BFF merges them over `defaultValues` before running Helm. The upgrade dialog pre-fills each field from the values actually installed in the release (via `helm get values`), falling back to the field's `default` when a key isn't set. Values are constrained to flat scalars (string/number/boolean, no nested objects or arrays) — see the BFF's Helm value validation for the exact character and count limits.
 
 ### RBAC
 

@@ -78,6 +78,7 @@ const mockLifecycle = {
   install: jest.fn(),
   upgrade: jest.fn(),
   remove: jest.fn(),
+  getValues: jest.fn(),
   reset: jest.fn(),
 };
 
@@ -135,8 +136,19 @@ jest.mock('~/app/components/QuickstartDetailPanel', () => ({
 }));
 
 jest.mock('~/app/components/StatusView', () => ({
-  StatusView: ({ namespace }: { namespace: string }) => (
-    <div data-testid="status-view">Status for {namespace}</div>
+  StatusView: ({
+    namespace,
+    onUpgrade,
+  }: {
+    namespace: string;
+    onUpgrade: () => void;
+  }) => (
+    <div data-testid="status-view">
+      Status for {namespace}
+      <button data-testid="trigger-upgrade" onClick={onUpgrade}>
+        Upgrade
+      </button>
+    </div>
   ),
 }));
 
@@ -152,6 +164,27 @@ jest.mock('~/app/components/LifecycleProgressModal', () => ({
 jest.mock('~/app/components/RemoveQuickstartModal', () => ({
   __esModule: true,
   default: () => <div data-testid="remove-modal" />,
+}));
+
+jest.mock('~/app/components/UpgradeQuickstartModal', () => ({
+  __esModule: true,
+  default: ({
+    isOpen,
+    onConfirm,
+  }: {
+    isOpen: boolean;
+    onConfirm: (values?: Record<string, unknown>) => void;
+  }) =>
+    isOpen ? (
+      <div data-testid="upgrade-modal">
+        <button
+          data-testid="confirm-upgrade"
+          onClick={() => onConfirm({ replicaCount: 3 })}
+        >
+          Confirm upgrade
+        </button>
+      </div>
+    ) : null,
 }));
 
 describe('QuickstartsPage', () => {
@@ -252,6 +285,51 @@ describe('QuickstartsPage', () => {
 
     expect(screen.queryByText('Protected namespace')).not.toBeInTheDocument();
     expect(screen.getByTestId('install-enabled')).toBeInTheDocument();
+  });
+
+  it('should open the upgrade modal when StatusView requests an upgrade', () => {
+    mockStatusHook.status = {
+      release: {
+        name: 'my-app',
+        namespace: 'test-project',
+        status: 'deployed',
+        chart: 'my-app-1.0.0',
+        appVersion: '1.0.0',
+      },
+      routes: [],
+    };
+
+    render(<QuickstartsPage />);
+    fireEvent.click(screen.getByTestId('select-project'));
+
+    expect(screen.queryByTestId('upgrade-modal')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('trigger-upgrade'));
+    expect(screen.getByTestId('upgrade-modal')).toBeInTheDocument();
+  });
+
+  it('should call lifecycle.upgrade with the confirmed values and close the modal', () => {
+    mockStatusHook.status = {
+      release: {
+        name: 'my-app',
+        namespace: 'test-project',
+        status: 'deployed',
+        chart: 'my-app-1.0.0',
+        appVersion: '1.0.0',
+      },
+      routes: [],
+    };
+
+    render(<QuickstartsPage />);
+    fireEvent.click(screen.getByTestId('select-project'));
+    fireEvent.click(screen.getByTestId('trigger-upgrade'));
+    fireEvent.click(screen.getByTestId('confirm-upgrade'));
+
+    expect(mockLifecycle.upgrade).toHaveBeenCalledWith(
+      'my-app',
+      'test-project',
+      { replicaCount: 3 },
+    );
+    expect(screen.queryByTestId('upgrade-modal')).not.toBeInTheDocument();
   });
 
   it('should keep the detail panel mounted and update gating when the project changes from within it', () => {

@@ -260,4 +260,93 @@ describe('QuickstartDetailPanel', () => {
     expect(screen.getByText('Checking project…')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Checking project/ })).toBeDisabled();
   });
+
+  describe('advanced options (configurableValues)', () => {
+    const quickstartWithValues: CatalogQuickstart = {
+      ...fullQuickstart,
+      deployment: {
+        scope: 'project',
+        chart: { type: 'oci', ref: 'oci://quay.io/example/lemonade-chart' },
+        configurableValues: [
+          {
+            key: 'replicaCount',
+            label: 'Replica count',
+            type: 'number',
+            default: 1,
+          },
+          {
+            key: 'model.name',
+            label: 'Model',
+            type: 'string',
+            default: 'llama-3',
+            required: true,
+          },
+        ],
+      },
+    };
+
+    it('should not render the advanced options toggle without configurableValues', () => {
+      renderPanel(fullQuickstart, jest.fn());
+      expect(
+        screen.queryByText('Show advanced options'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('should render an advanced options toggle when configurableValues are present', () => {
+      renderPanel(quickstartWithValues, jest.fn());
+      expect(screen.getByText('Show advanced options')).toBeInTheDocument();
+    });
+
+    it('should reveal the values form when expanded, seeded with defaults', async () => {
+      const user = userEvent.setup();
+      renderPanel(quickstartWithValues, jest.fn());
+
+      await user.click(screen.getByText('Show advanced options'));
+
+      expect(
+        (screen.getByLabelText('Replica count') as HTMLInputElement).value,
+      ).toBe('1');
+      expect(
+        (screen.getByLabelText('Model') as HTMLInputElement).value,
+      ).toBe('llama-3');
+    });
+
+    it('should call onInstall with the built payload for valid values', async () => {
+      const user = userEvent.setup();
+      const onInstall = jest.fn();
+      renderPanel(quickstartWithValues, onInstall);
+
+      await user.click(screen.getByText('Show advanced options'));
+      await user.clear(screen.getByLabelText('Replica count'));
+      await user.type(screen.getByLabelText('Replica count'), '3');
+      await user.click(screen.getByRole('button', { name: 'Install' }));
+
+      expect(onInstall).toHaveBeenCalledWith(quickstartWithValues, {
+        replicaCount: 3,
+        'model.name': 'llama-3',
+      });
+    });
+
+    it('should block install and surface an error when a required field is empty', async () => {
+      const user = userEvent.setup();
+      const onInstall = jest.fn();
+      renderPanel(quickstartWithValues, onInstall);
+
+      await user.click(screen.getByText('Show advanced options'));
+      await user.clear(screen.getByLabelText('Model'));
+      await user.click(screen.getByRole('button', { name: 'Install' }));
+
+      expect(onInstall).not.toHaveBeenCalled();
+      expect(screen.getByText('Model is required')).toBeInTheDocument();
+    });
+
+    it('should call onInstall with a single argument when there are no configurableValues', async () => {
+      const user = userEvent.setup();
+      const onInstall = jest.fn();
+      renderPanel(fullQuickstart, onInstall);
+
+      await user.click(screen.getByRole('button', { name: 'Install' }));
+      expect(onInstall).toHaveBeenCalledWith(fullQuickstart);
+    });
+  });
 });

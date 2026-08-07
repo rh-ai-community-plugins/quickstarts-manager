@@ -12,6 +12,7 @@ import { StatusView } from '~/app/components/StatusView';
 import { StatusSkeleton } from '~/app/components/StatusSkeleton';
 import LifecycleProgressModal from '~/app/components/LifecycleProgressModal';
 import RemoveQuickstartModal from '~/app/components/RemoveQuickstartModal';
+import UpgradeQuickstartModal from '~/app/components/UpgradeQuickstartModal';
 import { useLastSelectedProject } from '~/app/hooks/useLastSelectedProject';
 import { useQuickstartCatalog } from '~/app/hooks/useQuickstartCatalog';
 import { useQuickstartStatus } from '~/app/hooks/useQuickstartStatus';
@@ -31,6 +32,7 @@ const QuickstartsPage: React.FC = () => {
 
   const [showProgress, setShowProgress] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [detailQuickstart, setDetailQuickstart] =
     useState<CatalogQuickstart | null>(null);
 
@@ -40,19 +42,23 @@ const QuickstartsPage: React.FC = () => {
   };
 
   const handleInstall = useCallback(
-    async (quickstart: CatalogQuickstart) => {
+    async (quickstart: CatalogQuickstart, values?: Record<string, unknown>) => {
       if (!selectedProject) return;
       setShowProgress(true);
-      await lifecycle.install(quickstart.name, selectedProject);
+      await lifecycle.install(quickstart.name, selectedProject, values);
     },
     [selectedProject, lifecycle.install],
   );
 
-  const handleUpgrade = useCallback(async () => {
-    if (!selectedProject || !status.status) return;
-    setShowProgress(true);
-    await lifecycle.upgrade(status.status.release.name, selectedProject);
-  }, [selectedProject, status.status, lifecycle.upgrade]);
+  const handleUpgrade = useCallback(
+    async (values?: Record<string, unknown>) => {
+      if (!selectedProject || !status.status) return;
+      setShowUpgradeModal(false);
+      setShowProgress(true);
+      await lifecycle.upgrade(status.status.release.name, selectedProject, values);
+    },
+    [selectedProject, status.status, lifecycle.upgrade],
+  );
 
   const handleRemoveConfirm = useCallback(async () => {
     if (!selectedProject || !status.status) return;
@@ -69,11 +75,10 @@ const QuickstartsPage: React.FC = () => {
 
   const isProtected = selectedProject ? isProtectedNamespace(selectedProject) : false;
 
-  const catalogVersion = status.status
-    ? catalog.quickstarts.find(
-        (q) => q.name === status.status?.release.name,
-      )?.version
+  const deployedCatalogEntry = status.status
+    ? catalog.quickstarts.find((q) => q.name === status.status?.release.name)
     : undefined;
+  const catalogVersion = deployedCatalogEntry?.version;
 
   const renderContent = () => {
     if (!selectedProject) {
@@ -117,7 +122,7 @@ const QuickstartsPage: React.FC = () => {
             status={status.status}
             catalogVersion={catalogVersion}
             namespace={selectedProject}
-            onUpgrade={handleUpgrade}
+            onUpgrade={() => setShowUpgradeModal(true)}
             onRemove={() => setShowRemoveConfirm(true)}
             onRefresh={status.refresh}
             isLifecycleLoading={lifecycle.loading}
@@ -180,9 +185,9 @@ const QuickstartsPage: React.FC = () => {
           isOpen
           onClose={() => setDetailQuickstart(null)}
           onSelectNamespace={handleProjectSelect}
-          onInstall={(quickstart) => {
+          onInstall={(quickstart, values) => {
             setDetailQuickstart(null);
-            handleInstall(quickstart);
+            handleInstall(quickstart, values);
           }}
           isProtectedNamespace={isProtected}
           alreadyDeployed={!!status.status}
@@ -205,6 +210,17 @@ const QuickstartsPage: React.FC = () => {
         isLoading={lifecycle.loading}
         onConfirm={handleRemoveConfirm}
         onCancel={() => setShowRemoveConfirm(false)}
+      />
+
+      <UpgradeQuickstartModal
+        quickstartName={status.status?.release.name ?? null}
+        configurableValues={deployedCatalogEntry?.deployment?.configurableValues}
+        namespace={selectedProject}
+        isOpen={showUpgradeModal}
+        isLoading={lifecycle.loading}
+        getValues={lifecycle.getValues}
+        onConfirm={handleUpgrade}
+        onCancel={() => setShowUpgradeModal(false)}
       />
     </>
   );

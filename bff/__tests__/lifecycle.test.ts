@@ -10,6 +10,7 @@ jest.mock('../src/services/helmService');
 const mockedInstallQuickstart = jest.mocked(lifecycleService.installQuickstart);
 const mockedUpgradeQuickstart = jest.mocked(lifecycleService.upgradeQuickstart);
 const mockedRemoveQuickstart = jest.mocked(lifecycleService.removeQuickstart);
+const mockedHelmGetValues = jest.mocked(helmService.helmGetValues);
 
 function jsonRequest(
   port: number,
@@ -445,6 +446,83 @@ describe('lifecycle routes', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.events.find((e) => e.event === 'complete')).toBeDefined();
+    });
+  });
+
+  describe('GET /:name/values', () => {
+    it('returns 401 when no Authorization header', async () => {
+      const res = await jsonRequest(
+        port,
+        'GET',
+        '/api/quickstarts/lemonade/values?namespace=test-ns',
+      );
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('returns 400 for invalid quickstart name', async () => {
+      const res = await jsonRequest(
+        port,
+        'GET',
+        '/api/quickstarts/INVALID!/values?namespace=test-ns',
+        undefined,
+        { Authorization: 'Bearer token' },
+      );
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 400 when namespace query param is missing', async () => {
+      const res = await jsonRequest(
+        port,
+        'GET',
+        '/api/quickstarts/lemonade/values',
+        undefined,
+        { Authorization: 'Bearer token' },
+      );
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error).toContain('namespace');
+    });
+
+    it('returns 400 for invalid namespace format', async () => {
+      const res = await jsonRequest(
+        port,
+        'GET',
+        '/api/quickstarts/lemonade/values?namespace=BAD!',
+        undefined,
+        { Authorization: 'Bearer token' },
+      );
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).error).toContain('Invalid namespace');
+    });
+
+    it('returns 200 with values shape on success', async () => {
+      mockedHelmGetValues.mockResolvedValue({ replicaCount: 2 });
+
+      const res = await jsonRequest(
+        port,
+        'GET',
+        '/api/quickstarts/lemonade/values?namespace=test-ns',
+        undefined,
+        { Authorization: 'Bearer my-token' },
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body)).toEqual({ values: { replicaCount: 2 } });
+      expect(mockedHelmGetValues).toHaveBeenCalledWith('lemonade', 'test-ns', 'my-token');
+    });
+
+    it('returns 502 when helmGetValues throws', async () => {
+      mockedHelmGetValues.mockRejectedValue(new Error('boom'));
+
+      const res = await jsonRequest(
+        port,
+        'GET',
+        '/api/quickstarts/lemonade/values?namespace=test-ns',
+        undefined,
+        { Authorization: 'Bearer token' },
+      );
+
+      expect(res.statusCode).toBe(502);
+      expect(JSON.parse(res.body).error).toBe('Failed to read release values');
     });
   });
 

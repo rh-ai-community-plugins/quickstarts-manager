@@ -5,6 +5,7 @@ import {
   helmUpgrade,
   helmUninstall,
   helmList,
+  helmGetValues,
   validateHelmValues,
   sanitizeHelmError,
   HelmRelease,
@@ -280,6 +281,52 @@ describe('helmService', () => {
 
       const result = await helmList('ns', 'token');
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('helmGetValues', () => {
+    it('calls execFile with correct get values arguments', async () => {
+      mockHelmSuccess('{"replicaCount":2}');
+
+      await helmGetValues('my-qs', 'ns', 'token');
+
+      const args = mockedExecFile.mock.calls[0][1] as string[];
+      expect(args).toContain('get');
+      expect(args).toContain('values');
+      expect(args).toContain('my-qs');
+      expect(args).toContain('--namespace');
+      expect(args).toContain('ns');
+      expect(args).toContain('--output');
+      expect(args).toContain('json');
+    });
+
+    it('parses JSON output into an object', async () => {
+      mockHelmSuccess('{"replicaCount":2,"model":{"name":"llama-3"}}');
+
+      const result = await helmGetValues('my-qs', 'ns', 'token');
+
+      expect(result).toEqual({ replicaCount: 2, model: { name: 'llama-3' } });
+    });
+
+    it('returns empty object for empty output', async () => {
+      mockHelmSuccess('');
+
+      const result = await helmGetValues('my-qs', 'ns', 'token');
+      expect(result).toEqual({});
+    });
+
+    it('returns empty object for whitespace-only output', async () => {
+      mockHelmSuccess('  \n  ');
+
+      const result = await helmGetValues('my-qs', 'ns', 'token');
+      expect(result).toEqual({});
+    });
+
+    it('returns empty object when helm returns null', async () => {
+      mockHelmSuccess('null');
+
+      const result = await helmGetValues('my-qs', 'ns', 'token');
+      expect(result).toEqual({});
     });
   });
 

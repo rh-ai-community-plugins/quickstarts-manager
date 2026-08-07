@@ -41,6 +41,10 @@ export interface QuickstartLifecycleActions {
     values?: Record<string, unknown>,
   ) => Promise<LifecycleResponse>;
   remove: (name: string, namespace: string) => Promise<LifecycleResponse>;
+  getValues: (
+    name: string,
+    namespace: string,
+  ) => Promise<Record<string, unknown>>;
   reset: () => void;
 }
 
@@ -240,5 +244,30 @@ export function useQuickstartLifecycle(): QuickstartLifecycle {
     });
   }, []);
 
-  return { ...state, install, upgrade, remove, reset };
+  const getValues = useCallback(
+    async (
+      name: string,
+      namespace: string,
+    ): Promise<Record<string, unknown>> => {
+      const res = await fetch(
+        `${API_BASE}/${encodeURIComponent(name)}/values?namespace=${encodeURIComponent(namespace)}`,
+      );
+      if (!res.ok) {
+        const text = await res.text();
+        let message: string;
+        try {
+          const parsed = JSON.parse(text);
+          message = parsed.error ?? parsed.message ?? `Request failed: ${res.status}`;
+        } catch {
+          message = text || `Request failed: ${res.status}`;
+        }
+        throw new Error(message);
+      }
+      const data = await res.json();
+      return data.values ?? {};
+    },
+    [],
+  );
+
+  return { ...state, install, upgrade, remove, getValues, reset };
 }
