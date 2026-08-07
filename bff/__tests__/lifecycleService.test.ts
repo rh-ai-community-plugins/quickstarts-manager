@@ -6,7 +6,7 @@ import * as metadataClient from '../src/services/quickstartMetadataClient';
 import * as rbacChecker from '../src/services/rbacChecker';
 import * as settingsService from '../src/services/settingsService';
 import * as proxyAgent from '../src/utils/proxyAgent';
-import * as githubArchive from '../src/utils/githubArchive';
+import * as githubChart from '../src/utils/githubChart';
 import { QuickstartMetadata } from '../src/types/catalog';
 import { LifecycleStep } from '../src/types/lifecycle';
 
@@ -26,7 +26,7 @@ jest.mock('../src/services/quickstartMetadataClient');
 jest.mock('../src/services/rbacChecker');
 jest.mock('../src/services/settingsService');
 jest.mock('../src/utils/proxyAgent');
-jest.mock('../src/utils/githubArchive');
+jest.mock('../src/utils/githubChart');
 
 const mockedHelmInstall = jest.mocked(helmService.helmInstall);
 const mockedHelmUpgrade = jest.mocked(helmService.helmUpgrade);
@@ -38,8 +38,8 @@ const mockedGetQuickstartMetadata = jest.mocked(metadataClient.getQuickstartMeta
 const mockedCheckRbacPermissions = jest.mocked(rbacChecker.checkRbacPermissions);
 const mockedGetSettings = jest.mocked(settingsService.getSettings);
 const mockedGetProxyAgent = jest.mocked(proxyAgent.getProxyAgent);
-const mockedDownloadRepoChart = jest.mocked(githubArchive.downloadRepoChart);
-const mockedCleanupExtractedChart = jest.mocked(githubArchive.cleanupExtractedChart);
+const mockedDownloadRepoChart = jest.mocked(githubChart.downloadRepoChart);
+const mockedCleanupExtractedChart = jest.mocked(githubChart.cleanupExtractedChart);
 
 const MOCK_METADATA: QuickstartMetadata = {
   name: 'lemonade',
@@ -219,7 +219,7 @@ describe('lifecycleService', () => {
         'https://github.com/rh-ai-quickstart/lemonade',
         'chart/',
         'main',
-        expect.objectContaining({ headers: {} }),
+        expect.objectContaining({ token: undefined }),
       );
       expect(mockedHelmInstall).toHaveBeenCalledWith(
         'lemonade',
@@ -252,7 +252,7 @@ describe('lifecycleService', () => {
         expect.any(String),
         'chart/',
         'main',
-        expect.objectContaining({ headers: { Authorization: 'Bearer gh-token-123' } }),
+        expect.objectContaining({ token: 'gh-token-123' }),
       );
     });
 

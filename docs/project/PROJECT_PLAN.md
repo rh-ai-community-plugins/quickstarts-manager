@@ -185,7 +185,7 @@ Both views share the `ProjectSelector` component at the top for namespace select
    - Timeout handling (default: 330s)
    - Output buffer limit (default: 5MB)
    - Support for OCI chart references (`helm install <name> oci://...`)
-   - Support for in-repo chart paths (fetch chart archive from GitHub raw URL, install from local path)
+   - Support for in-repo chart paths (fetch chart subdirectory via GitHub Trees + Blobs API to a temp dir, install from local path — see `bff/src/utils/githubChart.ts`)
    - Sanitize error output to prevent token leakage
    - Functions: `helmInstall`, `helmUpgrade`, `helmUninstall`, `helmList`
    - Validate Helm values (strict patterns for keys/values to prevent injection)
@@ -454,18 +454,20 @@ Phase 3 → Phase 4 → Phase 6 → Phase 8
 
 ## Open Questions & Future Considerations
 
+### Resolved
+
+1. **In-repo chart fetching** (issue #13): For quickstarts using `chart.type: repo`, the BFF fetches only the chart subdirectory via the **GitHub Git Trees + Blobs API** (`bff/src/utils/githubChart.ts`) rather than downloading a full repo tarball. The recursive tree is listed once, blob paths under `chart.path` are filtered, and each blob is fetched and written to a temp directory (cleaned up after the Helm operation). Includes rate-limit detection (`X-RateLimit-Remaining`/`-Reset`), optional `GITHUB_TOKEN` auth, and GitHub Enterprise support via `GITHUB_API_BASE` (or derived from the repo host).
+
 ### Open
 
-1. **In-repo chart fetching**: For quickstarts using `chart.type: repo`, should the BFF clone the repo, download a tarball, or fetch the chart directory via GitHub API? A tarball download (`https://github.com/{org}/{repo}/archive/{branch}.tar.gz`) is simplest but downloads the entire repo.
+1. **Version detection for upgrades**: Should the BFF compare the installed Helm release version against the `version` field in the quickstart's `quickstart.yaml`? Or against the Helm chart's `Chart.yaml` version? These may differ.
 
-2. **Version detection for upgrades**: Should the BFF compare the installed Helm release version against the `version` field in the quickstart's `quickstart.yaml`? Or against the Helm chart's `Chart.yaml` version? These may differ.
+2. **GPU/prerequisite validation**: Prerequisites in `quickstart.yaml` are currently informational (displayed to user). Should the BFF attempt to validate any of them automatically (e.g., check for GPU nodes via K8s API)?
 
-3. **GPU/prerequisite validation**: Prerequisites in `quickstart.yaml` are currently informational (displayed to user). Should the BFF attempt to validate any of them automatically (e.g., check for GPU nodes via K8s API)?
+3. **Namespace cleanup on remove**: When removing a quickstart, should we offer to delete the namespace too? This is destructive if the user has other resources in the same namespace.
 
-4. **Namespace cleanup on remove**: When removing a quickstart, should we offer to delete the namespace too? This is destructive if the user has other resources in the same namespace.
+4. **Offline / air-gapped clusters**: The BFF fetches metadata from GitHub. How should the plugin behave in disconnected environments? A local/mirrored registry could be configured via the env vars.
 
-5. **Offline / air-gapped clusters**: The BFF fetches metadata from GitHub. How should the plugin behave in disconnected environments? A local/mirrored registry could be configured via the env vars.
+5. **Rate limiting**: With many quickstarts, concurrent metadata fetches may hit GitHub's unauthenticated rate limit (60/hour). Should we support an optional GitHub token for higher limits?
 
-6. **Rate limiting**: With many quickstarts, concurrent metadata fetches may hit GitHub's unauthenticated rate limit (60/hour). Should we support an optional GitHub token for higher limits?
-
-7. **Helm values customization**: Should the install dialog expose all Helm values for editing, or only the `defaultValues` declared in `quickstart.yaml`? Full exposure is more flexible but harder to UX.
+6. **Helm values customization**: Should the install dialog expose all Helm values for editing, or only the `defaultValues` declared in `quickstart.yaml`? Full exposure is more flexible but harder to UX.

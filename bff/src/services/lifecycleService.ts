@@ -5,7 +5,7 @@ import { getQuickstartMetadata } from './quickstartMetadataClient';
 import { checkRbacPermissions } from './rbacChecker';
 import { getSettings } from './settingsService';
 import { getProxyAgent } from '../utils/proxyAgent';
-import { downloadRepoChart, cleanupExtractedChart } from '../utils/githubArchive';
+import { downloadRepoChart, cleanupExtractedChart } from '../utils/githubChart';
 import { QuickstartMetadata, RegistryQuickstart } from '../types/catalog';
 import { LifecycleStep, LifecycleResponse, LifecycleProgressCallback } from '../types/lifecycle';
 
@@ -86,17 +86,13 @@ async function resolveChart(
   const branch = chart.branch ?? registry.branch ?? 'main';
 
   const { githubToken } = getSettings();
-  const headers: Record<string, string> = {};
-  if (githubToken) {
-    headers['Authorization'] = `Bearer ${githubToken}`;
-  }
   const agent = getProxyAgent();
 
   const extracted = await downloadRepoChart(
     registry.repository,
     chart.path,
     branch,
-    { headers, agent: agent ?? undefined },
+    { token: githubToken ?? undefined, agent: agent ?? undefined },
   );
 
   return { type: 'repo', ref: extracted.chartPath, tmpDir: extracted.tmpDir };

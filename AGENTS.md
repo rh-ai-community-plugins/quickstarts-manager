@@ -176,6 +176,7 @@ The `bff/` directory contains a standalone Express.js + TypeScript backend servi
 | `QUICKSTART_REGISTRY_BRANCH` | `main` | Branch to fetch from |
 | `CACHE_TTL` | `300` | Cache duration in seconds for catalog data |
 | `GITHUB_TOKEN` | (none) | GitHub personal access token for higher API rate limits (env-var fallback) |
+| `GITHUB_API_BASE` | (derived from repo host) | GitHub API base URL for in-repo (`chart.type: repo`) chart fetching via Trees + Blobs API. Defaults to `https://api.github.com` for github.com repos and `https://<host>/api/v3` for GitHub Enterprise Server. Set to override. |
 | `HTTPS_PROXY` | (none) | HTTP/HTTPS proxy URL for outbound GitHub requests (env-var fallback) |
 | `SETTINGS_MOUNT_PATH` | `/etc/quickstarts-manager/settings` | Path where the settings Secret is volume-mounted |
 
