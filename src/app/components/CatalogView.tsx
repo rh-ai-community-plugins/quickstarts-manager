@@ -24,15 +24,14 @@ import {
 import { SyncAltIcon } from '@patternfly/react-icons';
 import { CatalogQuickstart } from '~/app/types/catalog';
 import { CatalogSkeleton } from './CatalogSkeleton';
-import { QuickstartDetailPanel } from './QuickstartDetailPanel';
 
 export interface CatalogViewProps {
   quickstarts: CatalogQuickstart[];
   loading: boolean;
   error: string | null;
   onRefresh: (bypassCache?: boolean) => void;
-  namespace: string;
-  onInstall?: (quickstart: CatalogQuickstart) => void;
+  onSelectQuickstart: (quickstart: CatalogQuickstart) => void;
+  selectedQuickstartName?: string | null;
 }
 
 export const CatalogView: React.FC<CatalogViewProps> = ({
@@ -40,13 +39,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   loading,
   error,
   onRefresh,
-  namespace,
-  onInstall,
+  onSelectQuickstart,
+  selectedQuickstartName,
 }) => {
   const [searchText, setSearchText] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedQuickstart, setSelectedQuickstart] =
-    useState<CatalogQuickstart | null>(null);
 
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -176,11 +173,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               <Card
                 isClickable
                 isFullHeight
-                isSelected={selectedQuickstart?.name === q.name}
+                isSelected={selectedQuickstartName === q.name}
               >
                 <CardHeader
                   selectableActions={{
-                    onClickAction: () => setSelectedQuickstart(q),
+                    onClickAction: () => onSelectQuickstart(q),
                     selectableActionId: `select-${q.name}`,
                     selectableActionAriaLabelledby: `title-${q.name}`,
                     name: 'quickstart-card',
@@ -226,18 +223,5 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     </>
   );
 
-  return (
-    <>
-      {catalogContent}
-      {selectedQuickstart && (
-        <QuickstartDetailPanel
-          quickstart={selectedQuickstart}
-          namespace={namespace}
-          isOpen
-          onClose={() => setSelectedQuickstart(null)}
-          onInstall={onInstall}
-        />
-      )}
-    </>
-  );
+  return catalogContent;
 };

@@ -27,6 +27,7 @@ import {
 import { CatalogQuickstart } from '~/app/types/catalog';
 import { useAccessReview } from '~/app/hooks/useAccessReview';
 import type { PermissionCheck } from '~/app/hooks/useAccessReview';
+import { ProjectSelector } from './ProjectSelector';
 
 const RESOURCE_DISPLAY_NAMES: Record<string, string> = {
   pods: 'Pods',
@@ -64,10 +65,18 @@ function resourceDisplayName(resource: string): string {
 
 export interface QuickstartDetailPanelProps {
   quickstart: CatalogQuickstart;
-  namespace: string;
+  namespace: string | null;
   isOpen: boolean;
   onClose: () => void;
   onInstall?: (quickstart: CatalogQuickstart) => void;
+  /** Change the target project from within the panel. */
+  onSelectNamespace?: (namespace: string | null) => void;
+  /** A quickstart is already deployed in the selected namespace. */
+  alreadyDeployed?: boolean;
+  /** The selected namespace's deployment status is still being checked. */
+  namespaceStatusLoading?: boolean;
+  /** The selected namespace is a protected/system namespace. */
+  isProtectedNamespace?: boolean;
 }
 
 export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
@@ -76,6 +85,10 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
   isOpen,
   onClose,
   onInstall,
+  onSelectNamespace,
+  alreadyDeployed = false,
+  namespaceStatusLoading = false,
+  isProtectedNamespace = false,
 }) => {
   const permissionsKey = JSON.stringify(quickstart.rbac?.requiredPermissions);
   const permissions: PermissionCheck[] | undefined = useMemo(
@@ -113,26 +126,61 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
     return { label: 'Unknown', url: undefined };
   }, [quickstart.deployment, quickstart.repository]);
 
-  const installButton = rbac.loading ? (
-    <Button variant="primary" isDisabled>
-      <Spinner size="sm" aria-label="Checking permissions" />{' '}
-      Checking permissions…
-    </Button>
-  ) : rbacBlocked ? (
-    <Tooltip content="You lack required permissions in this namespace">
+  let installControl: React.ReactNode;
+  if (!namespace) {
+    installControl = (
       <Button variant="primary" isDisabled>
-        Install to {namespace}
+        Install
       </Button>
-    </Tooltip>
-  ) : (
-    <Button
-      variant="primary"
-      onClick={() => onInstall?.(quickstart)}
-      isDisabled={!onInstall}
-    >
-      Install to {namespace}
-    </Button>
-  );
+    );
+  } else if (isProtectedNamespace) {
+    installControl = (
+      <Tooltip content="Quickstarts cannot be installed into system namespaces. Choose another project.">
+        <Button variant="primary" isDisabled>
+          Install
+        </Button>
+      </Tooltip>
+    );
+  } else if (namespaceStatusLoading) {
+    installControl = (
+      <Button variant="primary" isDisabled>
+        <Spinner size="sm" aria-label="Checking project" /> Checking project…
+      </Button>
+    );
+  } else if (alreadyDeployed) {
+    installControl = (
+      <Tooltip content="A quickstart is already deployed in this project. Choose another project.">
+        <Button variant="primary" isDisabled>
+          Install
+        </Button>
+      </Tooltip>
+    );
+  } else if (rbac.loading) {
+    installControl = (
+      <Button variant="primary" isDisabled>
+        <Spinner size="sm" aria-label="Checking permissions" /> Checking
+        permissions…
+      </Button>
+    );
+  } else if (rbacBlocked) {
+    installControl = (
+      <Tooltip content="You lack required permissions in this namespace">
+        <Button variant="primary" isDisabled>
+          Install
+        </Button>
+      </Tooltip>
+    );
+  } else {
+    installControl = (
+      <Button
+        variant="primary"
+        onClick={() => onInstall?.(quickstart)}
+        isDisabled={!onInstall}
+      >
+        Install
+      </Button>
+    );
+  }
 
   return (
     <Modal
@@ -339,10 +387,29 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
         </Flex>
       </ModalBody>
       <ModalFooter>
-        {installButton}
-        <Button variant="link" onClick={onClose}>
-          Cancel
-        </Button>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          spaceItems={{ default: 'spaceItemsSm' }}
+          flexWrap={{ default: 'wrap' }}
+          style={{ width: '100%' }}
+        >
+          <FlexItem>
+            <Content component="p">Install this Quickstart in:</Content>
+          </FlexItem>
+          <FlexItem>
+            <ProjectSelector
+              selectedProject={namespace}
+              onSelect={onSelectNamespace ?? (() => undefined)}
+              isDisabled={!onSelectNamespace}
+            />
+          </FlexItem>
+          <FlexItem>{installControl}</FlexItem>
+          <FlexItem align={{ default: 'alignRight' }}>
+            <Button variant="link" onClick={onClose}>
+              Cancel
+            </Button>
+          </FlexItem>
+        </Flex>
       </ModalFooter>
     </Modal>
   );

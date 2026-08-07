@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickstartDetailPanel } from '../QuickstartDetailPanel';
@@ -11,6 +12,12 @@ const mockAccessReview = {
 
 jest.mock('~/app/hooks/useAccessReview', () => ({
   useAccessReview: () => mockAccessReview,
+}));
+
+jest.mock('../ProjectSelector', () => ({
+  ProjectSelector: ({ selectedProject }: { selectedProject: string | null }) => (
+    <div data-testid="project-selector">{selectedProject ?? 'none'}</div>
+  ),
 }));
 
 const fullQuickstart: CatalogQuickstart = {
@@ -49,6 +56,9 @@ const minimalQuickstart: CatalogQuickstart = {
 const renderPanel = (
   quickstart: CatalogQuickstart = fullQuickstart,
   onInstall?: (q: CatalogQuickstart) => void,
+  extraProps: Partial<
+    React.ComponentProps<typeof QuickstartDetailPanel>
+  > = {},
 ) => {
   return render(
     <QuickstartDetailPanel
@@ -57,6 +67,7 @@ const renderPanel = (
       isOpen
       onClose={jest.fn()}
       onInstall={onInstall}
+      {...extraProps}
     />,
   );
 };
@@ -140,14 +151,14 @@ describe('QuickstartDetailPanel', () => {
   it('should show install button with namespace', () => {
     renderPanel();
     expect(
-      screen.getByRole('button', { name: 'Install to my-namespace' }),
+      screen.getByRole('button', { name: 'Install' }),
     ).toBeInTheDocument();
   });
 
   it('should disable install button when no onInstall handler', () => {
     renderPanel(fullQuickstart);
     expect(
-      screen.getByRole('button', { name: 'Install to my-namespace' }),
+      screen.getByRole('button', { name: 'Install' }),
     ).toBeDisabled();
   });
 
@@ -157,7 +168,7 @@ describe('QuickstartDetailPanel', () => {
     renderPanel(fullQuickstart, onInstall);
 
     await user.click(
-      screen.getByRole('button', { name: 'Install to my-namespace' }),
+      screen.getByRole('button', { name: 'Install' }),
     );
     expect(onInstall).toHaveBeenCalledWith(fullQuickstart);
   });
@@ -207,7 +218,7 @@ describe('QuickstartDetailPanel', () => {
     expect(screen.getByLabelText('delete allowed')).toBeInTheDocument();
     expect(screen.getByLabelText('create allowed')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Install to my-namespace' }),
+      screen.getByRole('button', { name: 'Install' }),
     ).toBeDisabled();
   });
 
@@ -223,7 +234,30 @@ describe('QuickstartDetailPanel', () => {
     expect(screen.getAllByLabelText(/allowed/)).toHaveLength(3);
     expect(screen.queryByLabelText(/denied/)).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Install to my-namespace' }),
+      screen.getByRole('button', { name: 'Install' }),
     ).toBeEnabled();
+  });
+
+  it('should render the project selector bound to the namespace', () => {
+    renderPanel();
+    expect(screen.getByTestId('project-selector')).toHaveTextContent(
+      'my-namespace',
+    );
+  });
+
+  it('should disable install for a protected namespace', () => {
+    renderPanel(fullQuickstart, jest.fn(), { isProtectedNamespace: true });
+    expect(screen.getByRole('button', { name: 'Install' })).toBeDisabled();
+  });
+
+  it('should disable install when a quickstart is already deployed', () => {
+    renderPanel(fullQuickstart, jest.fn(), { alreadyDeployed: true });
+    expect(screen.getByRole('button', { name: 'Install' })).toBeDisabled();
+  });
+
+  it('should show checking state while the namespace status is loading', () => {
+    renderPanel(fullQuickstart, jest.fn(), { namespaceStatusLoading: true });
+    expect(screen.getByText('Checking project…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Checking project/ })).toBeDisabled();
   });
 });

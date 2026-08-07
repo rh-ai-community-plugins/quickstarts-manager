@@ -7,6 +7,7 @@ import {
 } from '@patternfly/react-core';
 import { ProjectSelector } from '~/app/components/ProjectSelector';
 import { CatalogView } from '~/app/components/CatalogView';
+import { QuickstartDetailPanel } from '~/app/components/QuickstartDetailPanel';
 import { StatusView } from '~/app/components/StatusView';
 import { StatusSkeleton } from '~/app/components/StatusSkeleton';
 import LifecycleProgressModal from '~/app/components/LifecycleProgressModal';
@@ -30,6 +31,8 @@ const QuickstartsPage: React.FC = () => {
 
   const [showProgress, setShowProgress] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [detailQuickstart, setDetailQuickstart] =
+    useState<CatalogQuickstart | null>(null);
 
   const handleProjectSelect = (project: string | null) => {
     setSelectedProject(project);
@@ -141,8 +144,8 @@ const QuickstartsPage: React.FC = () => {
           loading={catalog.loading}
           error={catalog.error}
           onRefresh={catalog.refresh}
-          namespace={selectedProject}
-          onInstall={isProtected ? undefined : handleInstall}
+          onSelectQuickstart={setDetailQuickstart}
+          selectedQuickstartName={detailQuickstart?.name ?? null}
         />
       </>
     );
@@ -169,6 +172,23 @@ const QuickstartsPage: React.FC = () => {
       <PageSection hasBodyWrapper={false} className="pf-v6-u-pt-md">
         {renderContent()}
       </PageSection>
+
+      {detailQuickstart && (
+        <QuickstartDetailPanel
+          quickstart={detailQuickstart}
+          namespace={selectedProject}
+          isOpen
+          onClose={() => setDetailQuickstart(null)}
+          onSelectNamespace={handleProjectSelect}
+          onInstall={(quickstart) => {
+            setDetailQuickstart(null);
+            handleInstall(quickstart);
+          }}
+          isProtectedNamespace={isProtected}
+          alreadyDeployed={!!status.status}
+          namespaceStatusLoading={status.loading}
+        />
+      )}
 
       <LifecycleProgressModal
         isOpen={showProgress}

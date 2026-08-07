@@ -3,27 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { CatalogView } from '../CatalogView';
 import { CatalogQuickstart } from '~/app/types/catalog';
 
-jest.mock('../QuickstartDetailPanel', () => ({
-  QuickstartDetailPanel: ({
-    quickstart,
-    isOpen,
-    onClose,
-  }: {
-    quickstart: CatalogQuickstart;
-    namespace: string;
-    isOpen: boolean;
-    onClose: () => void;
-  }) =>
-    isOpen ? (
-      <div data-testid="detail-panel">
-        <span data-testid="detail-name">{quickstart.displayName}</span>
-        <button data-testid="detail-close" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    ) : null,
-}));
-
 const mockQuickstarts: CatalogQuickstart[] = [
   {
     name: 'lemonade-stand',
@@ -72,7 +51,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -88,7 +67,7 @@ describe('CatalogView', () => {
         loading={true}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -103,7 +82,7 @@ describe('CatalogView', () => {
         loading={false}
         error="Service unavailable"
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -121,7 +100,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -141,7 +120,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -162,7 +141,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -182,7 +161,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -197,7 +176,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -212,7 +191,7 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
@@ -233,11 +212,28 @@ describe('CatalogView', () => {
         loading={false}
         error={null}
         onRefresh={onRefresh}
-        namespace="test-ns"
+        onSelectQuickstart={jest.fn()}
       />,
     );
 
     await user.click(screen.getByLabelText('Refresh catalog'));
     expect(onRefresh).toHaveBeenCalledWith(true);
+  });
+
+  it('should call onSelectQuickstart when a card is clicked', async () => {
+    const user = userEvent.setup();
+    const onSelectQuickstart = jest.fn();
+    render(
+      <CatalogView
+        quickstarts={mockQuickstarts}
+        loading={false}
+        error={null}
+        onRefresh={onRefresh}
+        onSelectQuickstart={onSelectQuickstart}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Lemonade Stand' }));
+    expect(onSelectQuickstart).toHaveBeenCalledWith(mockQuickstarts[0]);
   });
 });

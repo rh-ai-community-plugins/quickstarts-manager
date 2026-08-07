@@ -94,10 +94,38 @@ jest.mock('~/app/hooks/useQuickstartLifecycle', () => ({
 }));
 
 jest.mock('~/app/components/CatalogView', () => ({
-  CatalogView: ({ namespace, onInstall }: { namespace: string; onInstall?: () => void }) => (
+  CatalogView: ({
+    onSelectQuickstart,
+  }: {
+    onSelectQuickstart: (q: { name: string }) => void;
+  }) => (
     <div data-testid="catalog-view">
-      Catalog for {namespace}
-      {onInstall ? (
+      Catalog
+      <button
+        data-testid="open-detail"
+        onClick={() => onSelectQuickstart({ name: 'demo-app' })}
+      >
+        Open detail
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock('~/app/components/QuickstartDetailPanel', () => ({
+  QuickstartDetailPanel: ({
+    namespace,
+    onInstall,
+    isProtectedNamespace,
+    alreadyDeployed,
+  }: {
+    namespace: string | null;
+    onInstall?: () => void;
+    isProtectedNamespace?: boolean;
+    alreadyDeployed?: boolean;
+  }) => (
+    <div data-testid="detail-panel">
+      Install in {namespace}
+      {onInstall && !isProtectedNamespace && !alreadyDeployed ? (
         <span data-testid="install-enabled">install enabled</span>
       ) : (
         <span data-testid="install-disabled">install disabled</span>
@@ -149,7 +177,15 @@ describe('QuickstartsPage', () => {
     fireEvent.click(screen.getByTestId('select-project'));
 
     expect(screen.getByTestId('catalog-view')).toBeInTheDocument();
-    expect(screen.getByText('Catalog for test-project')).toBeInTheDocument();
+  });
+
+  it('should open the detail panel targeting the selected namespace', () => {
+    render(<QuickstartsPage />);
+    fireEvent.click(screen.getByTestId('select-project'));
+    fireEvent.click(screen.getByTestId('open-detail'));
+
+    expect(screen.getByTestId('detail-panel')).toBeInTheDocument();
+    expect(screen.getByText('Install in test-project')).toBeInTheDocument();
   });
 
   it('should show status view when namespace has a deployed quickstart', () => {
@@ -204,14 +240,35 @@ describe('QuickstartsPage', () => {
 
     expect(screen.getByText('Protected namespace')).toBeInTheDocument();
     expect(screen.getByText(/Installing quickstarts into system namespaces is not allowed/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('open-detail'));
     expect(screen.getByTestId('install-disabled')).toBeInTheDocument();
   });
 
   it('should enable install for non-protected namespaces', () => {
     render(<QuickstartsPage />);
     fireEvent.click(screen.getByTestId('select-project'));
+    fireEvent.click(screen.getByTestId('open-detail'));
 
     expect(screen.queryByText('Protected namespace')).not.toBeInTheDocument();
     expect(screen.getByTestId('install-enabled')).toBeInTheDocument();
+  });
+
+  it('should keep the detail panel mounted and update gating when the project changes from within it', () => {
+    render(<QuickstartsPage />);
+    fireEvent.click(screen.getByTestId('select-project'));
+    fireEvent.click(screen.getByTestId('open-detail'));
+
+    // Panel open, targeting a non-protected project → install enabled.
+    expect(screen.getByText('Install in test-project')).toBeInTheDocument();
+    expect(screen.getByTestId('install-enabled')).toBeInTheDocument();
+
+    // Switch to a protected project WITHOUT reopening the panel.
+    fireEvent.click(screen.getByTestId('select-protected'));
+
+    // Panel survived the content swap and its gating updated live.
+    expect(screen.getByTestId('detail-panel')).toBeInTheDocument();
+    expect(screen.getByText('Install in kube-system')).toBeInTheDocument();
+    expect(screen.getByTestId('install-disabled')).toBeInTheDocument();
   });
 });
