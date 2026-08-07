@@ -30,7 +30,7 @@ describe('useQuickstartCatalog', () => {
   it('should fetch catalog on mount', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockCatalog),
+      json: () => Promise.resolve({ quickstarts: mockCatalog }),
     });
 
     const { result } = renderHook(() => useQuickstartCatalog());
@@ -73,7 +73,7 @@ describe('useQuickstartCatalog', () => {
   it('should support refresh', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockCatalog),
+      json: () => Promise.resolve({ quickstarts: mockCatalog }),
     });
 
     const { result } = renderHook(() => useQuickstartCatalog());
@@ -92,7 +92,7 @@ describe('useQuickstartCatalog', () => {
   it('should use cache bypass URL when refresh(true) is called', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockCatalog),
+      json: () => Promise.resolve({ quickstarts: mockCatalog }),
     });
 
     const { result } = renderHook(() => useQuickstartCatalog());
