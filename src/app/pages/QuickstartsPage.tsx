@@ -102,15 +102,24 @@ const QuickstartsPage: React.FC = () => {
 
     if (status.status) {
       return (
-        <StatusView
-          status={status.status}
-          catalogVersion={catalogVersion}
-          namespace={selectedProject}
-          onUpgrade={handleUpgrade}
-          onRemove={() => setShowRemoveConfirm(true)}
-          onRefresh={status.refresh}
-          isLifecycleLoading={lifecycle.loading}
-        />
+        <>
+          <div
+            className="pf-v6-u-font-size-sm pf-v6-u-mb-sm"
+            style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+          >
+            The following quickstart is already deployed in this project. Choose
+            another project to access the Quickstarts catalog.
+          </div>
+          <StatusView
+            status={status.status}
+            catalogVersion={catalogVersion}
+            namespace={selectedProject}
+            onUpgrade={handleUpgrade}
+            onRemove={() => setShowRemoveConfirm(true)}
+            onRefresh={status.refresh}
+            isLifecycleLoading={lifecycle.loading}
+          />
+        </>
       );
     }
 
@@ -141,7 +150,7 @@ const QuickstartsPage: React.FC = () => {
 
   return (
     <>
-      <PageSection hasBodyWrapper={false}>
+      <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-0">
         <ProjectSelector
           selectedProject={selectedProject}
           onSelect={handleProjectSelect}
@@ -157,7 +166,7 @@ const QuickstartsPage: React.FC = () => {
               ? `Quickstart deployed: ${status.status.release.name}`
               : 'Showing catalog'}
       </div>
-      <PageSection hasBodyWrapper={false}>
+      <PageSection hasBodyWrapper={false} className="pf-v6-u-pt-md">
         {renderContent()}
       </PageSection>
 

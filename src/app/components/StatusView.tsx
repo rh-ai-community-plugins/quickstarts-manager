@@ -5,8 +5,11 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  Divider,
   Flex,
   FlexItem,
+  Grid,
+  GridItem,
   Label,
   List,
   ListItem,
@@ -76,78 +79,88 @@ export const StatusView: React.FC<StatusViewProps> = ({
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
         gap={{ default: 'gapMd' }}
-        className="pf-v6-u-mb-lg"
+        className="pf-v6-u-mb-xs"
       >
         <FlexItem>
-          <Title headingLevel="h2">{release.name}</Title>
+          <Title headingLevel="h1" size="2xl">
+            {release.name}
+          </Title>
         </FlexItem>
         <FlexItem>
           <Label color={statusColor(release.status)}>{release.status}</Label>
         </FlexItem>
       </Flex>
 
-      <DescriptionList isHorizontal className="pf-v6-u-mb-lg">
-        <DescriptionListGroup>
-          <DescriptionListTerm>Namespace</DescriptionListTerm>
-          <DescriptionListDescription>{namespace}</DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Chart</DescriptionListTerm>
-          <DescriptionListDescription>
-            {release.chart}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>App Version</DescriptionListTerm>
-          <DescriptionListDescription>
-            {release.appVersion}
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-        <DescriptionListGroup>
-          <DescriptionListTerm>Installed Version</DescriptionListTerm>
-          <DescriptionListDescription>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-            >
-              <FlexItem>{installedVersion}</FlexItem>
-              {upgradeAvailable && (
-                <FlexItem>
-                  <Label color="blue" isCompact>
-                    Update available: {catalogVersion}
-                  </Label>
-                </FlexItem>
-              )}
-            </Flex>
-          </DescriptionListDescription>
-        </DescriptionListGroup>
-      </DescriptionList>
-
-      {routes.length > 0 && (
-        <div className="pf-v6-u-mb-lg">
-          <Title headingLevel="h3" className="pf-v6-u-mb-sm">
-            Application Routes
-          </Title>
-          <List isPlain>
-            {routes.map((route) => (
-              <ListItem key={route.name}>
-                <Button
-                  variant="link"
-                  isInline
-                  component="a"
-                  href={route.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  icon={<ExternalLinkAltIcon />}
-                  iconPosition="end"
+      <Grid hasGutter className="pf-v6-u-mb-lg">
+        <GridItem span={12} md={6}>
+          <DescriptionList isHorizontal>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Namespace</DescriptionListTerm>
+              <DescriptionListDescription>
+                {namespace}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Chart</DescriptionListTerm>
+              <DescriptionListDescription>
+                {release.chart}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>App Version</DescriptionListTerm>
+              <DescriptionListDescription>
+                {release.appVersion}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Installed Version</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
                 >
-                  {route.name}
-                </Button>
-              </ListItem>
-            ))}
-          </List>
-        </div>
-      )}
+                  <FlexItem>{installedVersion}</FlexItem>
+                  {upgradeAvailable && (
+                    <FlexItem>
+                      <Label color="blue" isCompact>
+                        Update available: {catalogVersion}
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
+        </GridItem>
+
+        {routes.length > 0 && (
+          <GridItem span={12} md={6}>
+            <Title headingLevel="h3" className="pf-v6-u-mb-sm">
+              Application Routes
+            </Title>
+            <List isPlain>
+              {routes.map((route) => (
+                <ListItem key={route.name}>
+                  <Button
+                    variant="link"
+                    isInline
+                    component="a"
+                    href={route.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    icon={<ExternalLinkAltIcon />}
+                    iconPosition="end"
+                  >
+                    {route.name}
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          </GridItem>
+        )}
+      </Grid>
+
+      <Divider className="pf-v6-u-mb-xs" />
 
       <Flex gap={{ default: 'gapSm' }}>
         {upgradeAvailable && (
