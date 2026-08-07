@@ -2,9 +2,8 @@ import {
   quickstartsManagerAreaExtension,
   communityPluginsSectionExtension,
   quickstartsManagerSectionExtension,
-  userInfoNavExtension,
-  clusterResourcesNavExtension,
-  namespaceSummaryNavExtension,
+  quickstartsNavExtension,
+  settingsNavExtension,
   quickstartsManagerRouteExtension,
   extensions,
 } from '../extensions';
@@ -46,31 +45,13 @@ describe('RHOAI Plugin Extensions', () => {
   });
 
   describe('navigation extensions', () => {
-    it('should define User Info nav item under quickstarts-manager section', () => {
-      expect(userInfoNavExtension.type).toBe('app.navigation/href');
-      expect(userInfoNavExtension.properties.id).toBe('quickstarts-manager-user-info');
-      expect(userInfoNavExtension.properties.title).toBe('User Info');
-      expect(userInfoNavExtension.properties.href).toBe('/quickstarts-manager/user-info');
-      expect(userInfoNavExtension.properties.section).toBe('quickstarts-manager');
-      expect(userInfoNavExtension.properties.path).toBe('/quickstarts-manager/user-info/*');
-    });
-
-    it('should define Cluster Resources nav item under quickstarts-manager section', () => {
-      expect(clusterResourcesNavExtension.type).toBe('app.navigation/href');
-      expect(clusterResourcesNavExtension.properties.id).toBe('quickstarts-manager-cluster-resources');
-      expect(clusterResourcesNavExtension.properties.title).toBe('Cluster Resources');
-      expect(clusterResourcesNavExtension.properties.href).toBe('/quickstarts-manager/cluster-resources');
-      expect(clusterResourcesNavExtension.properties.section).toBe('quickstarts-manager');
-      expect(clusterResourcesNavExtension.properties.path).toBe('/quickstarts-manager/cluster-resources/*');
-    });
-
-    it('should define Namespace Summary nav item under quickstarts-manager section', () => {
-      expect(namespaceSummaryNavExtension.type).toBe('app.navigation/href');
-      expect(namespaceSummaryNavExtension.properties.id).toBe('quickstarts-manager-namespace-summary');
-      expect(namespaceSummaryNavExtension.properties.title).toBe('Namespace Summary');
-      expect(namespaceSummaryNavExtension.properties.href).toBe('/quickstarts-manager/namespace-summary');
-      expect(namespaceSummaryNavExtension.properties.section).toBe('quickstarts-manager');
-      expect(namespaceSummaryNavExtension.properties.path).toBe('/quickstarts-manager/namespace-summary/*');
+    it('should define Quickstarts nav item under quickstarts-manager section', () => {
+      expect(quickstartsNavExtension.type).toBe('app.navigation/href');
+      expect(quickstartsNavExtension.properties.id).toBe('quickstarts-manager-quickstarts');
+      expect(quickstartsNavExtension.properties.title).toBe('Quickstarts');
+      expect(quickstartsNavExtension.properties.href).toBe('/quickstarts-manager/quickstarts');
+      expect(quickstartsNavExtension.properties.section).toBe('quickstarts-manager');
+      expect(quickstartsNavExtension.properties.path).toBe('/quickstarts-manager/quickstarts/*');
     });
   });
 
@@ -83,9 +64,19 @@ describe('RHOAI Plugin Extensions', () => {
     });
   });
 
+  describe('settingsNavExtension', () => {
+    it('should define Settings nav item under quickstarts-manager section', () => {
+      expect(settingsNavExtension.type).toBe('app.navigation/href');
+      expect(settingsNavExtension.properties.id).toBe('quickstarts-manager-settings');
+      expect(settingsNavExtension.properties.title).toBe('Settings');
+      expect(settingsNavExtension.properties.href).toBe('/quickstarts-manager/settings');
+      expect(settingsNavExtension.properties.section).toBe('quickstarts-manager');
+    });
+  });
+
   describe('extensions array', () => {
-    it('should contain all seven extensions', () => {
-      expect(extensions).toHaveLength(7);
+    it('should contain all six extensions', () => {
+      expect(extensions).toHaveLength(6);
     });
 
     it('should include all extensions in the correct order', () => {
@@ -93,9 +84,8 @@ describe('RHOAI Plugin Extensions', () => {
         communityPluginsSectionExtension,
         quickstartsManagerAreaExtension,
         quickstartsManagerSectionExtension,
-        userInfoNavExtension,
-        clusterResourcesNavExtension,
-        namespaceSummaryNavExtension,
+        quickstartsNavExtension,
+        settingsNavExtension,
         quickstartsManagerRouteExtension,
       ]);
     });

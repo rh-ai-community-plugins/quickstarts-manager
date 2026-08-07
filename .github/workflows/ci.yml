@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 jobs:
   test:
@@ -28,6 +28,24 @@ jobs:
 
       - name: Run linter
         run: npm run lint
+
+  lint-chart:
+    runs-on: ubuntu-latest
+    name: Lint Helm chart
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+
+      - name: Lint chart
+        run: helm lint chart/
+
+      - name: Template chart
+        run: helm template quickstarts-manager chart/ > /dev/null
 
   test-bff:
     runs-on: ubuntu-latest

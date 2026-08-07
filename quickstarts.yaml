@@ -1,0 +1,9 @@
+# Registry of available quickstarts.
+# Each entry references a repository that must contain a quickstart.yaml metadata file.
+quickstarts:
+  - name: lemonade-stand-assistant
+    repository: https://github.com/rh-ai-quickstart/lemonade-stand-assistant
+    branch: feat/quickstart
+  - name: caisat
+    repository: https://github.com/rh-ai-quickstart/CAIsat
+    branch: feat/quickstart-manager

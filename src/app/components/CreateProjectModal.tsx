@@ -16,7 +16,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
-import { createK8sResource } from '~/app/hooks/useK8sResources';
+import { createK8sResource } from '~/app/utils/k8sApi';
 
 const RESOURCE_NAME_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
 const MAX_RESOURCE_NAME_LENGTH = 30;

@@ -1,5 +1,5 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useProjects } from '../useProjects';
+import { useProjects, resetProjectsStore } from '../useProjects';
 
 const mockProjects = [
   { metadata: { name: 'project-a', uid: 'uid-a' }, status: { phase: 'Active' } },
@@ -9,6 +9,7 @@ const mockProjects = [
 describe('useProjects', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    resetProjectsStore();
   });
 
   it('should return projects on success', async () => {

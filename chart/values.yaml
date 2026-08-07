@@ -63,6 +63,10 @@ bff:
     tag: ""
     pullPolicy: IfNotPresent
   replicaCount: 1
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
   service:
     type: ClusterIP
     port: 3000
@@ -74,3 +78,16 @@ bff:
     requests:
       cpu: 100m
       memory: 128Mi
+  # RBAC for quickstart lifecycle operations (install, upgrade, remove)
+  rbac:
+    create: true
+  # Quickstart registry configuration
+  registryRepo: "https://github.com/rh-ai-community-plugins/quickstarts-manager"
+  registryBranch: "main"
+  registryFile: "quickstarts.yaml"
+  # Cache TTL in seconds for catalog data
+  cacheTtl: 300
+  # Optional: GitHub personal access token for higher API rate limits
+  githubToken: ""
+  # Optional: HTTP/HTTPS proxy URL for outbound GitHub requests
+  proxyUrl: ""

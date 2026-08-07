@@ -2,9 +2,16 @@
 
 Thank you for your interest in the Quickstarts Manager community plugin for Red Hat OpenShift AI Dashboard.
 
+## Branching Workflow
+
+- **`main`** — Release branch. Always reflects the latest released version.
+- **`dev`** — Development branch (default). All work happens here or in branches off `dev`.
+- **Feature/fix branches** — Branch from `dev`, PR back to `dev`.
+- **Releases** — When ready to release, PR from `dev` to `main`.
+
 ## How to Contribute
 
-1. Fork the repository and create a feature branch from `main`.
+1. Fork the repository and create a feature or fix branch from `dev`.
 2. Make your changes and ensure tests and lint pass:
 
    ```bash
@@ -12,7 +19,7 @@ Thank you for your interest in the Quickstarts Manager community plugin for Red 
    npm run lint
    ```
 
-3. Submit a pull request with a clear description of the change.
+3. Submit a pull request targeting the `dev` branch with a clear description of the change.
 
 ## Reporting Issues
 

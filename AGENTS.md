@@ -99,7 +99,7 @@ The plugin exposes two remote modules to the RHOAI dashboard host via Webpack Mo
 - **`./extensions`** (`src/rhoai/extensions.ts`) — Defines extension points:
   - `app.area` — registers the `quickstarts-manager` feature area
   - `app.navigation/section` (x2) — `community-plugins` shared parent section (with `CommunityNavIcon`) and `quickstarts-manager` plugin subsection (with `QuickstartsManagerNavIcon`)
-  - `app.navigation/href` — "Quickstarts" nav item under the `quickstarts-manager` section
+  - `app.navigation/href` (x2) — "Quickstarts" nav item and "Settings" nav item under the `quickstarts-manager` section
   - `app.route` — mounts the App component with wildcard routing at `/quickstarts-manager/*`
 - **`./Icon`** (`src/app/components/QuickstartsManagerNavIcon.tsx`) — SVG icon for the plugin's nav subsection. A separate `CommunityNavIcon.tsx` provides the icon for the shared `community-plugins` parent section.
 
@@ -107,12 +107,13 @@ Shared singletons (react, react-dom, react-router-dom, @patternfly/react-core, @
 
 ### Pages
 
-The plugin has a single main page with two views, routed under `/quickstarts-manager/*`:
+The plugin has three pages, routed under `/quickstarts-manager/*`:
 
 - **Catalog view** — Shown when no quickstart is deployed in the selected namespace. Displays available quickstarts from the curated registry with filtering by tags, search, and detail panels showing description, prerequisites, and required permissions. Install action triggers Helm deployment into the selected namespace.
 - **Status view** — Shown when a quickstart is deployed in the selected namespace. Displays Helm release status (deployed, failed, pending, etc.), resource summary, and auto-discovered OpenShift Routes as clickable shortcuts (open in new tab). Provides upgrade and remove actions.
+- **Settings page** (`/quickstarts-manager/settings`) — Admin-only page for configuring GitHub token (for higher API rate limits) and HTTP proxy URL. Gated by `useCurrentUser().user?.isAdmin` — non-admins see an EmptyState. Persists settings to a K8s Secret via the BFF.
 
-Both views share the `ProjectSelector` component at the top for namespace selection (with favorites support).
+Catalog and Status views share the `ProjectSelector` component at the top for namespace selection (with favorites support).
 
 ### Custom Hooks
 
@@ -131,6 +132,7 @@ Hooks in `src/app/hooks/` provide data fetching and API integration:
 - `useQuickstartCatalog` — Fetches the curated quickstart list from the BFF (`/api/catalog`). Returns catalog entries with metadata, loading state, error, and a refresh function.
 - `useQuickstartStatus` — Checks whether a quickstart is deployed in the selected namespace (`/api/quickstarts/status?namespace=X`). Returns the Helm release info (name, version, status, chart) and discovered Routes, or null if nothing is deployed.
 - `useQuickstartLifecycle` — Provides install, upgrade, and remove operations via the BFF. Handles SSE progress streaming for long-running Helm operations.
+- `useSettings` — Fetches and manages plugin settings (GitHub token, proxy URL) via the BFF `/api/settings` endpoint. Returns `{ settings, loading, error, saving, save, remove }`. Handles 403 as a permission error.
 
 ### BFF Service
 
@@ -148,6 +150,9 @@ The `bff/` directory contains a standalone Express.js + TypeScript backend servi
 | `POST` | `/api/quickstarts/:name/install` | Install quickstart via Helm. Body: `{ namespace, values? }`. Supports SSE progress streaming. |
 | `POST` | `/api/quickstarts/:name/upgrade` | Upgrade existing quickstart. Supports SSE progress streaming. |
 | `DELETE` | `/api/quickstarts/:name` | Remove quickstart via Helm. Query: `?namespace=X`. Supports SSE progress streaming. |
+| `GET` | `/api/settings` | Get plugin settings (admin-only). Returns masked GitHub token, proxy URL, and config source. |
+| `PUT` | `/api/settings` | Update plugin settings (admin-only). Body: `{ githubToken?, proxyUrl? }`. Writes to K8s Secret. |
+| `DELETE` | `/api/settings` | Clear plugin settings (admin-only). Removes Secret data. |
 
 #### BFF Services
 
@@ -156,6 +161,7 @@ The `bff/` directory contains a standalone Express.js + TypeScript backend servi
 - **`helmService`** — Wraps Helm CLI execution. Creates temporary kubeconfig per request using the forwarded Bearer token. Handles both OCI registry charts and in-repo chart paths. Sanitizes errors to prevent token leakage.
 - **`lifecycleService`** — Orchestrates quickstart lifecycle: resolves metadata → validates RBAC → runs Helm operation → discovers Routes. No dashboard config patching needed (quickstarts are standalone apps).
 - **`k8sApiClient`** — Kubernetes API client for direct API interactions (Route discovery, RBAC pre-checks, namespace operations).
+- **`settingsService`** — Centralized settings reader/writer. Reads GitHub token and proxy URL from volume-mounted Secret files at `/etc/quickstarts-manager/settings/`, falls back to env vars (`GITHUB_TOKEN`, `HTTPS_PROXY`), caches with 30s TTL. Writes settings to K8s Secret via the admin's forwarded token.
 
 #### BFF Environment Variables
 
@@ -169,6 +175,10 @@ The `bff/` directory contains a standalone Express.js + TypeScript backend servi
 | `QUICKSTART_REGISTRY_FILE` | `quickstarts.yaml` | Registry filename |
 | `QUICKSTART_REGISTRY_BRANCH` | `main` | Branch to fetch from |
 | `CACHE_TTL` | `300` | Cache duration in seconds for catalog data |
+| `GITHUB_TOKEN` | (none) | GitHub personal access token for higher API rate limits (env-var fallback) |
+| `GITHUB_API_BASE` | (derived from repo host) | GitHub API base URL for in-repo (`chart.type: repo`) chart fetching via Trees + Blobs API. Defaults to `https://api.github.com` for github.com repos and `https://<host>/api/v3` for GitHub Enterprise Server. Set to override. **Note:** this only affects chart fetching. The registry (`quickstarts.yaml`) and metadata (`quickstart.yaml`) are still fetched via `raw.githubusercontent.com` (github.com only), so full GitHub Enterprise support is not wired end-to-end — quickstarts are expected to live on public github.com. |
+| `HTTPS_PROXY` | (none) | HTTP/HTTPS proxy URL for outbound GitHub requests (env-var fallback) |
+| `SETTINGS_MOUNT_PATH` | `/etc/quickstarts-manager/settings` | Path where the settings Secret is volume-mounted |
 
 ### Entry Point Chain
 
