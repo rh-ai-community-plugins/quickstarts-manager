@@ -80,7 +80,7 @@ deployment:
 
 ### In-Repo Path
 
-The chart lives inside the quickstart's Git repository. The plugin clones the repo (or fetches the chart archive) and installs from the local path.
+The chart lives inside the quickstart's Git repository. The plugin fetches only the chart subdirectory (via the GitHub Trees + Blobs API) to a temp directory and installs from that local path — no full clone or archive download. The repository must be on public github.com.
 
 ```yaml
 deployment:
@@ -90,7 +90,7 @@ deployment:
     branch: main  # optional, defaults to main
 ```
 
-OCI is preferred because it avoids Git clones at install time and supports proper versioning. In-repo is provided for quickstarts that haven't published to a registry yet.
+OCI is preferred because it avoids fetching chart files from GitHub at install time and supports proper versioning. In-repo is provided for quickstarts that haven't published to a registry yet.
 
 ## Version Detection
 
