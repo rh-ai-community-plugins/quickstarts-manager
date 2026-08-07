@@ -197,3 +197,19 @@ export async function helmList(namespace: string, token: string): Promise<HelmRe
   const releases: HelmRelease[] = JSON.parse(output);
   return releases;
 }
+
+export async function helmGetValues(
+  releaseName: string,
+  namespace: string,
+  token: string,
+): Promise<Record<string, unknown>> {
+  const output = await runHelm(
+    ['get', 'values', releaseName, '--namespace', namespace, '--output', 'json'],
+    token,
+  );
+
+  if (!output || output.trim() === '') return {};
+
+  const values = JSON.parse(output);
+  return values === null ? {} : values;
+}

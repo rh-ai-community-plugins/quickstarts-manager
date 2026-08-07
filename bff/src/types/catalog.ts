@@ -30,10 +30,21 @@ export interface QuickstartChartRepo {
 
 export type QuickstartChart = QuickstartChartOci | QuickstartChartRepo;
 
+export interface QuickstartConfigurableValue {
+  key: string;
+  label?: string;
+  description?: string;
+  type: 'string' | 'number' | 'boolean';
+  default?: string | number | boolean;
+  required?: boolean;
+  options?: string[]; // enum for string type → dropdown
+}
+
 export interface QuickstartDeployment {
   scope: 'project' | 'cluster';
   chart: QuickstartChart;
   defaultValues?: Record<string, unknown>;
+  configurableValues?: QuickstartConfigurableValue[];
 }
 
 export interface QuickstartPermission {

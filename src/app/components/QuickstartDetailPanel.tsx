@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Content,
@@ -6,6 +6,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  ExpandableSection,
   Flex,
   FlexItem,
   Label,
@@ -27,6 +28,14 @@ import {
 import { CatalogQuickstart } from '~/app/types/catalog';
 import { useAccessReview } from '~/app/hooks/useAccessReview';
 import type { PermissionCheck } from '~/app/hooks/useAccessReview';
+import { QuickstartValuesForm } from './QuickstartValuesForm';
+import {
+  buildPayload,
+  initialFormState,
+  validateFields,
+  type ValuesFormErrors,
+  type ValuesFormState,
+} from '~/app/utils/values';
 import { ProjectSelector } from './ProjectSelector';
 
 const RESOURCE_DISPLAY_NAMES: Record<string, string> = {
@@ -68,7 +77,10 @@ export interface QuickstartDetailPanelProps {
   namespace: string | null;
   isOpen: boolean;
   onClose: () => void;
-  onInstall?: (quickstart: CatalogQuickstart) => void;
+  onInstall?: (
+    quickstart: CatalogQuickstart,
+    values?: Record<string, unknown>,
+  ) => void;
   /** Change the target project from within the panel. */
   onSelectNamespace?: (namespace: string | null) => void;
   /** A quickstart is already deployed in the selected namespace. */
@@ -105,6 +117,38 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
 
   const deniedPermissions = rbac.results.filter((r) => !r.allowed);
   const rbacBlocked = !rbac.loading && deniedPermissions.length > 0;
+
+  const configurableValues = quickstart.deployment?.configurableValues;
+
+  const [valuesState, setValuesState] = useState<ValuesFormState>(() =>
+    initialFormState(configurableValues),
+  );
+  const [valuesErrors, setValuesErrors] = useState<ValuesFormErrors>({});
+
+  const quickstartName = quickstart.name;
+  const configurableValuesKey = JSON.stringify(configurableValues);
+  // Re-seed whenever the panel is opened for a different quickstart.
+  useEffect(() => {
+    setValuesState(initialFormState(configurableValues));
+    setValuesErrors({});
+  }, [quickstartName, configurableValuesKey]);
+
+  const handleValueChange = (key: string, value: string | boolean) => {
+    setValuesState((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleInstallClick = () => {
+    if (!configurableValues?.length) {
+      onInstall?.(quickstart);
+      return;
+    }
+    const errors = validateFields(configurableValues, valuesState);
+    setValuesErrors(errors);
+    if (Object.values(errors).some((error) => error)) {
+      return;
+    }
+    onInstall?.(quickstart, buildPayload(configurableValues, valuesState));
+  };
 
   const chartSource = useMemo(() => {
     const chart = quickstart.deployment?.chart;
@@ -174,7 +218,7 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
     installControl = (
       <Button
         variant="primary"
-        onClick={() => onInstall?.(quickstart)}
+        onClick={handleInstallClick}
         isDisabled={!onInstall}
       >
         Install
@@ -382,6 +426,19 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
                   </Label>
                 ))}
               </LabelGroup>
+            </FlexItem>
+          )}
+
+          {configurableValues && configurableValues.length > 0 && (
+            <FlexItem>
+              <ExpandableSection toggleText="Show advanced options">
+                <QuickstartValuesForm
+                  fields={configurableValues}
+                  values={valuesState}
+                  errors={valuesErrors}
+                  onChange={handleValueChange}
+                />
+              </ExpandableSection>
             </FlexItem>
           )}
         </Flex>

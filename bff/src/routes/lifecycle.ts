@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { installQuickstart, upgradeQuickstart, removeQuickstart } from '../services/lifecycleService';
-import { validateHelmValues } from '../services/helmService';
+import { validateHelmValues, helmGetValues } from '../services/helmService';
 import { extractToken, validateQuickstartName, validateNamespace } from '../utils/validation';
 import { LifecycleResponse, LifecycleProgressCallback } from '../types/lifecycle';
 
@@ -168,6 +168,42 @@ router.delete('/:name', (req: Request, res: Response) => {
   sendSSE(req, res, (onProgress) =>
     removeQuickstart(req.params.name, namespace, token, onProgress),
   );
+});
+
+router.get('/:name/values', (req: Request, res: Response) => {
+  const token = extractToken(req);
+  if (!token) {
+    res.status(401).json({ error: 'Authorization token required' });
+    return;
+  }
+
+  const nameError = validateQuickstartName(req.params.name);
+  if (nameError) {
+    res.status(400).json({ error: nameError });
+    return;
+  }
+
+  const namespace = typeof req.query.namespace === 'string' ? req.query.namespace : undefined;
+
+  if (namespace === undefined) {
+    res.status(400).json({ error: 'Missing required query parameter: namespace' });
+    return;
+  }
+
+  const nsError = validateNamespace(namespace);
+  if (nsError) {
+    res.status(400).json({ error: nsError });
+    return;
+  }
+
+  helmGetValues(req.params.name, namespace, token)
+    .then((values) => {
+      res.json({ values });
+    })
+    .catch((err) => {
+      console.error('Failed to read release values:', (err as Error).message);
+      res.status(502).json({ error: 'Failed to read release values' });
+    });
 });
 
 export default router;
