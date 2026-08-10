@@ -429,42 +429,47 @@ export const QuickstartDetailPanel: React.FC<QuickstartDetailPanelProps> = ({
             </FlexItem>
           )}
 
-          {configurableValues && configurableValues.length > 0 && (
-            <FlexItem>
-              <ExpandableSection toggleText="Show advanced options">
-                <QuickstartValuesForm
-                  fields={configurableValues}
-                  values={valuesState}
-                  errors={valuesErrors}
-                  onChange={handleValueChange}
-                />
-              </ExpandableSection>
-            </FlexItem>
-          )}
         </Flex>
       </ModalBody>
       <ModalFooter>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          spaceItems={{ default: 'spaceItemsSm' }}
-          flexWrap={{ default: 'wrap' }}
-          style={{ width: '100%' }}
-        >
+        <Flex direction={{ default: 'column' }} style={{ width: '100%' }}>
+          {configurableValues && configurableValues.length > 0 && (
+            <FlexItem>
+              <ExpandableSection toggleText="Show advanced options">
+                <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                  <QuickstartValuesForm
+                    fields={configurableValues}
+                    values={valuesState}
+                    errors={valuesErrors}
+                    onChange={handleValueChange}
+                  />
+                </div>
+              </ExpandableSection>
+            </FlexItem>
+          )}
           <FlexItem>
-            <Content component="p">Install this Quickstart in:</Content>
-          </FlexItem>
-          <FlexItem>
-            <ProjectSelector
-              selectedProject={namespace}
-              onSelect={onSelectNamespace ?? (() => undefined)}
-              isDisabled={!onSelectNamespace}
-            />
-          </FlexItem>
-          <FlexItem>{installControl}</FlexItem>
-          <FlexItem align={{ default: 'alignRight' }}>
-            <Button variant="link" onClick={onClose}>
-              Cancel
-            </Button>
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              spaceItems={{ default: 'spaceItemsSm' }}
+              flexWrap={{ default: 'wrap' }}
+            >
+              <FlexItem>
+                <Content component="p">Install this Quickstart in:</Content>
+              </FlexItem>
+              <FlexItem>
+                <ProjectSelector
+                  selectedProject={namespace}
+                  onSelect={onSelectNamespace ?? (() => undefined)}
+                  isDisabled={!onSelectNamespace}
+                />
+              </FlexItem>
+              <FlexItem>{installControl}</FlexItem>
+              <FlexItem align={{ default: 'alignRight' }}>
+                <Button variant="link" onClick={onClose}>
+                  Cancel
+                </Button>
+              </FlexItem>
+            </Flex>
           </FlexItem>
         </Flex>
       </ModalFooter>
