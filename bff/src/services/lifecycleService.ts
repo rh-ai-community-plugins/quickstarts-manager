@@ -9,6 +9,20 @@ import { downloadRepoChart, cleanupExtractedChart } from '../utils/githubChart';
 import { QuickstartMetadata, RegistryQuickstart } from '../types/catalog';
 import { LifecycleStep, LifecycleResponse, LifecycleProgressCallback } from '../types/lifecycle';
 
+const namespaceLocks = new Map<string, Promise<LifecycleResponse>>();
+
+async function withNamespaceLock(
+  namespace: string,
+  fn: () => Promise<LifecycleResponse>,
+): Promise<LifecycleResponse> {
+  while (namespaceLocks.has(namespace)) {
+    await namespaceLocks.get(namespace);
+  }
+  const promise = fn().finally(() => namespaceLocks.delete(namespace));
+  namespaceLocks.set(namespace, promise);
+  return promise;
+}
+
 function sanitizeErrorMessage(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err);
   return sanitizeHelmError(raw);
@@ -98,7 +112,19 @@ async function resolveChart(
   return { type: 'repo', ref: extracted.chartPath, tmpDir: extracted.tmpDir };
 }
 
-export async function installQuickstart(
+export function installQuickstart(
+  quickstartName: string,
+  namespace: string,
+  token: string,
+  values?: Record<string, unknown>,
+  onProgress?: LifecycleProgressCallback,
+): Promise<LifecycleResponse> {
+  return withNamespaceLock(namespace, () =>
+    doInstallQuickstart(quickstartName, namespace, token, values, onProgress),
+  );
+}
+
+async function doInstallQuickstart(
   quickstartName: string,
   namespace: string,
   token: string,
@@ -194,7 +220,19 @@ export async function installQuickstart(
   }
 }
 
-export async function upgradeQuickstart(
+export function upgradeQuickstart(
+  quickstartName: string,
+  namespace: string,
+  token: string,
+  values?: Record<string, unknown>,
+  onProgress?: LifecycleProgressCallback,
+): Promise<LifecycleResponse> {
+  return withNamespaceLock(namespace, () =>
+    doUpgradeQuickstart(quickstartName, namespace, token, values, onProgress),
+  );
+}
+
+async function doUpgradeQuickstart(
   quickstartName: string,
   namespace: string,
   token: string,
@@ -275,7 +313,18 @@ export async function upgradeQuickstart(
   }
 }
 
-export async function removeQuickstart(
+export function removeQuickstart(
+  quickstartName: string,
+  namespace: string,
+  token: string,
+  onProgress?: LifecycleProgressCallback,
+): Promise<LifecycleResponse> {
+  return withNamespaceLock(namespace, () =>
+    doRemoveQuickstart(quickstartName, namespace, token, onProgress),
+  );
+}
+
+async function doRemoveQuickstart(
   quickstartName: string,
   namespace: string,
   token: string,
