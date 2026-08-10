@@ -208,4 +208,42 @@ describe('LifecycleProgressModal', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.queryByText('0s')).not.toBeInTheDocument();
   });
+
+  it('should show cleanup hint after successful removal', () => {
+    render(
+      <LifecycleProgressModal
+        {...defaultProps}
+        operation="remove"
+        success={true}
+        message="Release removed"
+      />,
+    );
+    expect(screen.getByText('Manual cleanup may be needed')).toBeInTheDocument();
+    expect(screen.getByText(/Persistent Volume Claims/)).toBeInTheDocument();
+    expect(screen.getByText(/namespace itself/)).toBeInTheDocument();
+  });
+
+  it('should not show cleanup hint after successful install', () => {
+    render(
+      <LifecycleProgressModal
+        {...defaultProps}
+        operation="install"
+        success={true}
+        message="Installed"
+      />,
+    );
+    expect(screen.queryByText('Manual cleanup may be needed')).not.toBeInTheDocument();
+  });
+
+  it('should not show cleanup hint after failed removal', () => {
+    render(
+      <LifecycleProgressModal
+        {...defaultProps}
+        operation="remove"
+        success={false}
+        message="Failed"
+      />,
+    );
+    expect(screen.queryByText('Manual cleanup may be needed')).not.toBeInTheDocument();
+  });
 });

@@ -90,7 +90,13 @@ async function lifecycleStreamRequest(
   let finalResult: LifecycleResponse | null = null;
 
   for (;;) {
-    const { done, value } = await reader.read();
+    let done: boolean;
+    let value: string | undefined;
+    try {
+      ({ done, value } = await reader.read());
+    } catch {
+      throw new StreamInterruptedError();
+    }
     if (done) break;
 
     buffer += value;

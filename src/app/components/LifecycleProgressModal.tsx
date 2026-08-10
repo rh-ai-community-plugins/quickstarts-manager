@@ -146,6 +146,21 @@ const LifecycleProgressModal: React.FC<LifecycleProgressModalProps> = ({
             className="pf-v6-u-mt-md"
           />
         )}
+        {success === true && operation === 'remove' && (
+          <Alert
+            variant="info"
+            title="Manual cleanup may be needed"
+            isInline
+            className="pf-v6-u-mt-md"
+          >
+            The Helm release has been removed, but some resources may remain:
+            <ul>
+              <li>Persistent Volume Claims (PVCs) created by the quickstart</li>
+              <li>The namespace itself, if no longer needed</li>
+            </ul>
+            Check the namespace and delete any leftover resources manually.
+          </Alert>
+        )}
       </ModalBody>
       <ModalFooter>
         <Button

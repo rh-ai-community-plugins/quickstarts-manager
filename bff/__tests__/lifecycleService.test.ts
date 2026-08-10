@@ -530,4 +530,44 @@ describe('lifecycleService', () => {
       expect(failedStep!.id).toBe('helm-uninstall');
     });
   });
+
+  describe('namespace locking', () => {
+    it('serializes concurrent installs to the same namespace', async () => {
+      const callOrder: string[] = [];
+      mockedHelmInstall.mockImplementation(async () => {
+        callOrder.push('install-start');
+        await new Promise((r) => setTimeout(r, 50));
+        callOrder.push('install-end');
+        return '{}';
+      });
+
+      const p1 = installQuickstart('lemonade', 'test-ns', 'token');
+      const p2 = installQuickstart('lemonade', 'test-ns', 'token2');
+
+      await Promise.all([p1, p2]);
+
+      expect(callOrder).toEqual([
+        'install-start', 'install-end',
+        'install-start', 'install-end',
+      ]);
+    });
+
+    it('allows concurrent installs to different namespaces', async () => {
+      const callOrder: string[] = [];
+      mockedHelmInstall.mockImplementation(async (_name, _ref, ns) => {
+        callOrder.push(`start-${ns}`);
+        await new Promise((r) => setTimeout(r, 50));
+        callOrder.push(`end-${ns}`);
+        return '{}';
+      });
+
+      const p1 = installQuickstart('lemonade', 'ns-a', 'token');
+      const p2 = installQuickstart('lemonade', 'ns-b', 'token');
+
+      await Promise.all([p1, p2]);
+
+      expect(callOrder[0]).toBe('start-ns-a');
+      expect(callOrder[1]).toBe('start-ns-b');
+    });
+  });
 });
