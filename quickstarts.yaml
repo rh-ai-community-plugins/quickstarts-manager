@@ -3,7 +3,7 @@
 quickstarts:
   - name: lemonade-stand-assistant
     repository: https://github.com/rh-ai-quickstart/lemonade-stand-assistant
-    branch: feat/quickstart
+    branch: main
   - name: caisat
     repository: https://github.com/rh-ai-quickstart/CAIsat
-    branch: feat/quickstart-manager
+    branch: main
