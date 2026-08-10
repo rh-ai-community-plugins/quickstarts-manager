@@ -23,7 +23,10 @@ rules:
   - apiGroups: [""]
     resources: ["services", "configmaps", "serviceaccounts", "persistentvolumeclaims"]
     verbs: ["get", "list", "create", "update", "patch", "delete"]
-  # Helm stores release state in secrets
+  # Helm stores release state in secrets (sh.helm.release.v1.*). The settings
+  # service also manages a quickstarts-manager-settings secret. ClusterRole
+  # rules cannot filter by label or name, so full CRUD across namespaces is
+  # required for Helm to operate on arbitrary target namespaces.
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "list", "create", "update", "patch", "delete"]
